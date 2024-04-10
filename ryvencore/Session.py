@@ -37,6 +37,7 @@ class Session(Base):
         # ATTRIBUTES
         self.addons: Dict[str, AddOn] = {}
         self.flows: List[Flow] = []
+        self.title_to_flow_dict: Dict[str, Flow] = {}
         self.nodes: Set[Type[Node]] = set()      # list of node CLASSES
         self.invisible_nodes: Set[Type[Node]] = set()
         self.data_types: Dict[str, Type[Data]] = {}
@@ -46,8 +47,6 @@ class Session(Base):
         # Register Built-In Data Types
         self.register_data_types(get_built_in_data_types())
         
-        # self.register_addons(pkg_path('addons/legacy/'))
-        # self.register_addons(pkg_path('addons/'))
         if load_addons:
             self.register_addons()
 
@@ -171,19 +170,24 @@ class Session(Base):
         
         return self.data_types.get(id)
         
-    def create_flow(self, title: str = None, data: Dict = None) -> Flow:
+        
+    def create_flow(self, title: str = None, data: Dict = None) -> Optional[Flow]:
         """
         Creates and returns a new flow.
         If data is provided the title parameter will be ignored.
         """
 
         flow = Flow(session=self, title=title)
-        self.flows.append(flow)
-
-        self.flow_created.emit(flow)
-
         if data:
             flow.load(data)
+        
+        # Titles should be unique
+        if not self.flow_title_valid(flow.title):
+            return None
+        
+        self.flows.append(flow)
+        self.title_to_flow_dict[title] = flow
+        self.flow_created.emit(flow)
 
         return flow
 
@@ -196,7 +200,9 @@ class Session(Base):
         success = False
 
         if self.flow_title_valid(title):
+            del self.title_to_flow_dict[flow.title]
             flow.title = title
+            self.title_to_flow_dict[title] = flow
             success = True
 
         self.flow_renamed.emit(flow, title)
@@ -211,9 +217,9 @@ class Session(Base):
 
         if len(title) == 0:
             return False
-        for s in self.flows:
-            if s.title == title:
-                return False
+        
+        if title in self.title_to_flow_dict:
+            return False
 
         return True
 
@@ -223,8 +229,11 @@ class Session(Base):
         Deletes an existing flow.
         """
 
+        if not flow.title in self.title_to_flow_dict:
+            return
+        
         self.flows.remove(flow)
-
+        del self.title_to_flow_dict[flow.title]
         self.flow_deleted.emit(flow)
 
 
@@ -275,7 +284,7 @@ class Session(Base):
 
         return new_flows
 
-    def serialize(self) -> Dict:
+    def serialize(self) -> dict:
         """
         Returns the project as JSON compatible dict to be saved and
         loaded again using load()
