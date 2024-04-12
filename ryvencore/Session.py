@@ -1,4 +1,3 @@
-import importlib
 import glob
 import os.path
 from typing import TYPE_CHECKING
@@ -21,7 +20,12 @@ class Session(Base):
     """
 
     version = pkg_version()
-
+    
+    _flow_base_type: type[Flow] = Flow
+    """
+    Forces the Session to accept a specific type of base Flow.
+    """
+    
     def __init__(
             self,
             gui: bool = False,
@@ -34,13 +38,9 @@ class Session(Base):
         self.flow_renamed = Event(Flow, str)
         self.flow_deleted = Event(Flow)
         
-        a = Flow(self, "jesus")
-        a.nodes
-
         # ATTRIBUTES
         self.addons: dict[str, AddOn] = {}
-        self.flows: list[Flow] = []
-        self.title_to_flow_dict: dict[str, Flow] = {}
+        self.flows: dict[str, Flow] = {}
         self.nodes: set[type[Node]] = set()      # list of node CLASSES
         self.invisible_nodes: set[type[Node]] = set()
         self.data_types: dict[str, type[Data]] = {}
@@ -87,7 +87,7 @@ class Session(Base):
             # establish event connections
             self.flow_created.sub(addon.on_flow_created, nice=-5)
             self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
-            for f in self.flows:
+            for f in self.flows.values():
                 addon.connect_flow_events(f)
 
 
@@ -124,7 +124,7 @@ class Session(Base):
         Returns a list of all node objects instantiated in any flow.
         """
 
-        return [n for f in self.flows for n in f.nodes]
+        return [n for f in self.flows.values() for n in f.nodes]
 
 
     def register_data_type(self, data_type_class: type[Data]):
@@ -180,16 +180,15 @@ class Session(Base):
         If data is provided the title parameter will be ignored.
         """
 
-        flow = Flow(session=self, title=title)
+        flow = self._flow_base_type(session=self, title=title)
         if data:
             flow.load(data)
         
         # Titles should be unique
-        if not self.flow_title_valid(flow.title):
+        if not self.new_flow_title_valid(flow.title):
             return None
         
-        self.flows.append(flow)
-        self.title_to_flow_dict[title] = flow
+        self.flows[flow.title] = flow
         self.flow_created.emit(flow)
 
         return flow
@@ -202,42 +201,35 @@ class Session(Base):
 
         success = False
 
-        if self.flow_title_valid(title):
-            del self.title_to_flow_dict[flow.title]
+        if self.new_flow_title_valid(title):
+            del self.flows[flow.title]
             flow.title = title
-            self.title_to_flow_dict[title] = flow
+            self.flows[title] = flow
             success = True
-
-        self.flow_renamed.emit(flow, title)
+            self.flow_renamed.emit(flow, title)
 
         return success
 
 
-    def flow_title_valid(self, title: str) -> bool:
+    def new_flow_title_valid(self, title: str) -> bool:
         """
         Checks whether a considered title for a new flow is valid (unique) or not.
         """
 
-        if len(title) == 0:
-            return False
-        
-        if title in self.title_to_flow_dict:
-            return False
-
-        return True
+        return len(title) != 0 and title not in self.flows
 
 
     def delete_flow(self, flow: Flow):
         """
         Deletes an existing flow.
         """
-
-        if not flow.title in self.title_to_flow_dict:
-            return
         
-        self.flows.remove(flow)
-        del self.title_to_flow_dict[flow.title]
+        if flow.title not in self.flows or flow != self.flows[flow.title]:
+            return False
+        
+        del self.flows[flow.title]
         self.flow_deleted.emit(flow)
+        return True
 
 
     def _info_messenger(self):

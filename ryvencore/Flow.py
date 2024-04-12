@@ -91,31 +91,40 @@ Assumptions:
 from .Base import Base, Event
 from .data.Data import Data
 from .FlowExecutor import FlowExecutor, executor_from_flow_alg
-from .Node import NodeType, node_from_identifier
+from .Node import Node, node_from_identifier
 from .NodePort import NodeOutput, NodeInput, check_valid_conn
 from .RC import FlowAlg, ConnValidType
 from .utils import *
-from typing import TypeVar, Generic, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .Session import Session
 
 
-class Flow(Base, Generic[NodeType]):
+class Flow(Base):
     """
     Manages all abstract flow components (nodes, edges, executors, etc.)
     and exposes methods for modification.
+    
+    The generic flow type helps in building libraries that have a different base node
+    type than a typical Node. This was made to help with type hinting. Also check 
+    the node_base_type for additional runtime type checking.
     """
-
-    def __init__(self, session, title: str):
+    
+    _node_base_type: type[Node] = Node
+    """
+    Forces the flow to accept a specific type of base node.
+    """
+    
+    def __init__(self, session: 'Session', title: str):
         Base.__init__(self)
 
         # events
-        self.node_added = Event(NodeType)
-        self.node_removed = Event(NodeType)
-        self.node_created = Event(NodeType)
-        self.connection_added = Event((NodeOutput, NodeInput))        # Event(Connection)
-        self.connection_removed = Event((NodeOutput, NodeInput))      # Event (Connection)
+        self.node_added = Event(Node)
+        self.node_removed = Event(Node)
+        self.node_created = Event(Node)
+        self.connection_added = Event((NodeOutput, NodeInput))    
+        self.connection_removed = Event((NodeOutput, NodeInput))     
 
         self.connection_request_valid = Event(ConnValidType)
         self.nodes_created_from_data = Event(list)
@@ -128,12 +137,12 @@ class Flow(Base, Generic[NodeType]):
             addon.connect_flow_events(self)
 
         # general attributes
-        self.session: Session = session
+        self.session = session
         self.title = title
-        self.nodes: list[NodeType] = []
+        self.nodes: list[Node] = []
         self.load_data = None
 
-        self.node_successors: dict[NodeType, list[NodeType]] = {}   # additional data structure for executors
+        self.node_successors: dict[Node, list[Node]] = {}   # additional data structure for executors
         self.graph_adj: dict[NodeOutput, list[NodeInput]] = {}         # directed adjacency list relating node ports
         self.graph_adj_rev: dict[NodeInput, NodeOutput] = {}     # reverse adjacency; reverse of graph_adj
 
@@ -168,7 +177,7 @@ class Flow(Base, Generic[NodeType]):
         return new_nodes, new_conns
 
 
-    def _create_nodes_from_data(self, nodes_data: list) -> list[NodeType]:
+    def _create_nodes_from_data(self, nodes_data: list) -> list[Node]:
         """create nodes from nodes_data as previously returned by data()"""
 
         nodes = []
@@ -189,7 +198,7 @@ class Flow(Base, Generic[NodeType]):
         return nodes
 
 
-    def _set_output_values_from_data(self, nodes: list[NodeType], data: list):
+    def _set_output_values_from_data(self, nodes: list[Node], data: list):
         for d in data:
             indices = d['dependent node outputs']
             indices_paired = zip(indices[0::2], indices[1::2])
@@ -212,15 +221,19 @@ class Flow(Base, Generic[NodeType]):
                     data_type(load_from=d['data'])
 
 
-    def create_node(self, node_class: type[NodeType], data=None):
+    def create_node(self, node_class: type[Node], data=None):
         """Creates, adds and returns a new node object"""
 
+        if not issubclass(node_class, self._node_base_type):
+            print_err(f'Node class is not of base type {self._node_base_type}')
+            return
+        
         if node_class not in self.session.nodes:
             print_err(f'Node class {node_class} not in session nodes')
             return
 
         # instantiate node
-        node = node_class((self, self.session))
+        node = node_class(self)
         # connect to node events
         node.input_added.sub(lambda n, i, inp: self.add_node_input(n, inp), nice=-5)
         node.output_added.sub(lambda n, i, out: self.add_node_output(n, out), nice=-5)
@@ -238,13 +251,17 @@ class Flow(Base, Generic[NodeType]):
         return node
 
 
-    def add_node(self, node: NodeType):
+    def add_node(self, node: Node):
         """
         Places the node object in the graph, Stores it, and causes the node's
         ``Node.place_event()`` to be executed. ``Flow.create_node()`` automatically
         adds the node already, so no need to call this manually.
         """
 
+        if not isinstance(node, self._node_base_type):
+            print_err(f'Object {node} is not of base type {self._node_base_type}')
+            return
+        
         self.nodes.append(node)
 
         self.node_successors[node] = []
@@ -265,7 +282,7 @@ class Flow(Base, Generic[NodeType]):
         self.node_added.emit(node)
 
 
-    def remove_node(self, node: NodeType):
+    def remove_node(self, node: Node):
         """
         Removes a node from the flow without deleting it. Can be added again
         with ``Flow.add_node()``.
@@ -291,7 +308,7 @@ class Flow(Base, Generic[NodeType]):
         self.node_removed.emit(node)
 
 
-    def add_node_input(self, node: NodeType, inp: NodeInput, _call_flow_changed=True):
+    def add_node_input(self, node: Node, inp: NodeInput, _call_flow_changed=True):
         """updates internal data structures"""
         if node in self.node_successors:
             self.graph_adj_rev[inp] = None
@@ -299,7 +316,7 @@ class Flow(Base, Generic[NodeType]):
                 self._flow_changed()
 
 
-    def add_node_output(self, node: NodeType, out: NodeOutput, _call_flow_changed=True):
+    def add_node_output(self, node: Node, out: NodeOutput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             self.graph_adj[out] = []
@@ -307,7 +324,7 @@ class Flow(Base, Generic[NodeType]):
                 self._flow_changed()
 
 
-    def remove_node_input(self, node: NodeType, inp: NodeInput, _call_flow_changed=True):
+    def remove_node_input(self, node: Node, inp: NodeInput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             del self.graph_adj_rev[inp]
@@ -315,7 +332,7 @@ class Flow(Base, Generic[NodeType]):
                 self._flow_changed()
 
 
-    def remove_node_output(self, node: NodeType, out: NodeOutput, _call_flow_changed=True):
+    def remove_node_output(self, node: Node, out: NodeOutput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             del self.graph_adj[out]
@@ -323,7 +340,7 @@ class Flow(Base, Generic[NodeType]):
                 self._flow_changed()
 
 
-    def _connect_nodes_from_data(self, nodes: list[NodeType], data: list):
+    def _connect_nodes_from_data(self, nodes: list[Node], data: list):
         connections = []
 
         for c in data:
@@ -533,13 +550,13 @@ class Flow(Base, Generic[NodeType]):
         }
 
 
-    def _gen_nodes_data(self, nodes: list[NodeType]) -> list[dict]:
+    def _gen_nodes_data(self, nodes: list[Node]) -> list[dict]:
         """Returns the data dicts of the nodes given"""
 
         return [n.data() for n in nodes]
 
 
-    def _gen_conns_data(self, nodes: list[NodeType]) -> list[dict]:
+    def _gen_conns_data(self, nodes: list[Node]) -> list[dict]:
         """Generates the connections data between and relative to the nodes passed"""
 
         # notice that this is intentionally not part of Connection, because connection data
@@ -561,7 +578,7 @@ class Flow(Base, Generic[NodeType]):
         return data
 
 
-    def _gen_output_data(self, nodes: list[NodeType]) -> list[dict]:
+    def _gen_output_data(self, nodes: list[Node]) -> list[dict]:
         """Serializes output data of the nodes"""
 
         outputs_data = {}
@@ -578,3 +595,6 @@ class Flow(Base, Generic[NodeType]):
                     outputs_data[d]['dependent node outputs'] += [i_n, i_o]
 
         return list(outputs_data.values())
+
+
+

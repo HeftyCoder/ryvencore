@@ -66,7 +66,7 @@ class DataFlowBasic(unittest.TestCase):
         s2 = rc.Session()
         s2.register_node_types([Node1, Node2])
         s2.load(project)
-        f2 = s2.flows[0]
+        f2 = s2.flows['main']
 
         n1_2, n2_2, n3_2, n4_2 = f2.nodes
 

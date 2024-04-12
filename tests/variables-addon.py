@@ -106,7 +106,7 @@ class VariablesBasic(unittest.TestCase):
 
         vars = s2.addons.get('Variables')
 
-        f2 = s2.flows[0]
+        f2 = s2.flows['main']
         self.assertEqual(vars.var(f2, 'var1').get(), 42)
 
         n1_2, n2_2, n3_2, n4_2 = f2.nodes

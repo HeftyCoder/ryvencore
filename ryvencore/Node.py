@@ -1,5 +1,5 @@
 import traceback
-from typing import TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .Base import Base, Event
 
@@ -15,7 +15,6 @@ from copy import copy
 
 if TYPE_CHECKING:
     from .Flow import Flow
-    from .Session import Session
 
 class Node(Base):
     """
@@ -71,12 +70,11 @@ class Node(Base):
 
         # notice that we do not touch the legacy identifier fields
 
-    def __init__(self, params):
+    def __init__(self, flow: 'Flow'):
         Base.__init__(self)
 
-        flow, session = params
-        self.flow: Flow = flow
-        self.session: Session = session
+        self.flow = flow
+        self.session = flow.session
         
         self._inputs: list[NodeInput] = []
         self._outputs: list[NodeOutput] = []
@@ -487,10 +485,10 @@ class Node(Base):
         self.load_data = data
 
         # setup ports
-        #   remove initial ports
+        # remove initial ports
         self._inputs = []
         self._outputs = []
-        #   load from data
+        # load from data
         self._setup_ports(data['inputs'], data['outputs'])
 
         # additional data
@@ -532,15 +530,13 @@ class Node(Base):
         }
 
         # extend with data from addons
-        for name, addon in self.session.addons.items():
+        for _, addon in self.session.addons.items():
             # addons can modify anything, there is no isolation enforcement
             addon.extend_node_data(self, d)
 
         return d
-
-NodeType = TypeVar('NodeType', bound=Node)
-"""A type var for type checking and hinting purposes."""
-
+    
+    
 def node_from_identifier(identifier: str, nodes: list[Node]):
 
     for nc in nodes:

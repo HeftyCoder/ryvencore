@@ -84,7 +84,7 @@ class DataTypesCustom(unittest.TestCase):
         s2.register_node_types([self.Producer, self.Consumer])
         s2.register_data_type(self.MyData)
         s2.load(project)
-        f2 = s2.flows[0]
+        f2 = s2.flows['main']
         n2_1, n2_2 = f2.nodes
         self.assertTrue(isinstance(n2_1._outputs[0].val, self.MyData))
         n2_1.update()
