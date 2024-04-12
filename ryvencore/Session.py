@@ -1,7 +1,7 @@
 import importlib
 import glob
 import os.path
-from typing import List, Dict, Type, Optional, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .data import Data 
 from .data.built_in import get_built_in_data_types 
@@ -33,14 +33,17 @@ class Session(Base):
         self.flow_created = Event(Flow)
         self.flow_renamed = Event(Flow, str)
         self.flow_deleted = Event(Flow)
+        
+        a = Flow(self, "jesus")
+        a.nodes
 
         # ATTRIBUTES
-        self.addons: Dict[str, AddOn] = {}
-        self.flows: List[Flow] = []
-        self.title_to_flow_dict: Dict[str, Flow] = {}
-        self.nodes: Set[Type[Node]] = set()      # list of node CLASSES
-        self.invisible_nodes: Set[Type[Node]] = set()
-        self.data_types: Dict[str, Type[Data]] = {}
+        self.addons: dict[str, AddOn] = {}
+        self.flows: list[Flow] = []
+        self.title_to_flow_dict: dict[str, Flow] = {}
+        self.nodes: set[type[Node]] = set()      # list of node CLASSES
+        self.invisible_nodes: set[type[Node]] = set()
+        self.data_types: dict[str, type[Data]] = {}
         self.gui: bool = gui
         self.init_data = None
 
@@ -51,7 +54,7 @@ class Session(Base):
             self.register_addons()
 
 
-    def register_addons(self, location: Optional[str] = None):
+    def register_addons(self, location: str | None = None):
         """
         Loads all addons from the given location, or from ryvencore's
         *addons* directory if :code:`location` is :code:`None`.
@@ -88,7 +91,7 @@ class Session(Base):
                 addon.connect_flow_events(f)
 
 
-    def register_node_types(self, node_types: List[Type[Node]]):
+    def register_node_types(self, node_types: list[type[Node]]):
         """
         Registers a list of Nodes which then become available in the flows.
         Do not attempt to place nodes in flows that haven't been registered in the session before.
@@ -98,7 +101,7 @@ class Session(Base):
             self.register_node_type(n)
 
 
-    def register_node_type(self, node_class: Type[Node]):
+    def register_node_type(self, node_class: type[Node]):
         """
         Registers a single node.
         """
@@ -107,7 +110,7 @@ class Session(Base):
         self.nodes.add(node_class)
 
 
-    def unregister_node(self, node_class: Type[Node]):
+    def unregister_node(self, node_class: type[Node]):
         """
         Unregisters a node which will then be removed from the available list.
         Existing instances won't be affected.
@@ -116,7 +119,7 @@ class Session(Base):
         self.nodes.remove(node_class)
 
 
-    def all_node_objects(self) -> List[Node]:
+    def all_node_objects(self) -> list[Node]:
         """
         Returns a list of all node objects instantiated in any flow.
         """
@@ -124,7 +127,7 @@ class Session(Base):
         return [n for f in self.flows for n in f.nodes]
 
 
-    def register_data_type(self, data_type_class: Type[Data]):
+    def register_data_type(self, data_type_class: type[Data]):
         """
         Registers a new :code:`Data` subclass which will then be available
         in the flows.
@@ -143,7 +146,7 @@ class Session(Base):
         self.data_types[id] = data_type_class
 
 
-    def register_data_types(self, data_type_classes: List[Type[Data]]):
+    def register_data_types(self, data_type_classes: list[type[Data]]):
         """
         Registers a list of :code:`Data` subclasses which will then be available
         in the flows.
@@ -153,7 +156,7 @@ class Session(Base):
             self.register_data_type(d)
 
     
-    def register_data_types_by_base(self, base_type: Type[Data]):
+    def register_data_types_by_base(self, base_type: type[Data]):
         """
         Registers :code:`Data` subclasses that belong to a base class.
         """
@@ -163,7 +166,7 @@ class Session(Base):
             self.register_data_type(data_type)
             
     
-    def get_data_type(self, id: str) -> Optional[Type[Data]]:
+    def get_data_type(self, id: str) -> type[Data] | None:
         """
         Retrieves a data type with a specific id, if it exists
         """
@@ -171,7 +174,7 @@ class Session(Base):
         return self.data_types.get(id)
         
         
-    def create_flow(self, title: str = None, data: Dict = None) -> Optional[Flow]:
+    def create_flow(self, title: str = None, data: dict = None) -> Flow | None:
         """
         Creates and returns a new flow.
         If data is provided the title parameter will be ignored.
@@ -245,7 +248,7 @@ class Session(Base):
         return InfoMsgs
 
 
-    def load(self, data: Dict) -> List[Flow]:
+    def load(self, data: dict) -> list[Flow]:
         """
         Loads a project and raises an exception if required nodes are missing
         (not registered).

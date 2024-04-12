@@ -1,5 +1,5 @@
 import traceback
-from typing import List, Optional, Dict, Union, TYPE_CHECKING
+from typing import TypeVar, TYPE_CHECKING
 
 from .Base import Base, Event
 
@@ -27,22 +27,22 @@ class Node(Base):
     title = ''
     """the node's title"""
 
-    tags: List[str] = []
+    tags: list[str] = []
     """a list of tag strings, often useful for searching etc."""
 
     version: str = None
     """version tag, use it!"""
 
-    init_inputs: List[NodeInputType] = []
+    init_inputs: list[NodeInputType] = []
     """list of node input types determining the initial inputs"""
 
-    init_outputs: List[NodeOutputType] = []
+    init_outputs: list[NodeOutputType] = []
     """initial outputs list, see ``init_inputs``"""
 
     identifier: str = None
     """unique node identifier string. if not given it will set it to the class name when registering in the session"""
 
-    legacy_identifiers: List[str] = []
+    legacy_identifiers: list[str] = []
     """a list of compatible identifiers, useful when you change the class name (and hence the identifier) to provide 
     backward compatibility to load old projects that rely on the old identifier"""
 
@@ -78,8 +78,8 @@ class Node(Base):
         self.flow: Flow = flow
         self.session: Session = session
         
-        self._inputs: List[NodeInput] = []
-        self._outputs: List[NodeOutput] = []
+        self._inputs: list[NodeInput] = []
+        self._outputs: list[NodeOutput] = []
 
         self.loaded = False
         self.load_data = None
@@ -177,7 +177,7 @@ class Node(Base):
         InfoMsgs.write_err('EXCEPTION in', self.title, '\n', traceback.format_exc())
         self.update_error.emit(e)
 
-    def input(self, index: int) -> Optional[Data]:
+    def input(self, index: int) -> Data | None:
         """
         Returns the data residing at the data input of given index.
 
@@ -268,7 +268,7 @@ class Node(Base):
 
         pass
 
-    def additional_data(self) -> Dict:
+    def additional_data(self) -> dict:
         """
         *VIRTUAL*
 
@@ -280,7 +280,7 @@ class Node(Base):
 
         return {}
 
-    def load_additional_data(self, data: Dict):
+    def load_additional_data(self, data: dict):
         """
         *VIRTUAL*
 
@@ -288,7 +288,7 @@ class Node(Base):
         """
         pass
 
-    def get_state(self) -> Dict:
+    def get_state(self) -> dict:
         """
         *VIRTUAL*
 
@@ -297,7 +297,7 @@ class Node(Base):
         """
         return {}
 
-    def set_state(self, data: Dict, version):
+    def set_state(self, data: dict, version):
         """
         *VIRTUAL*
 
@@ -325,8 +325,8 @@ class Node(Base):
 
     #   PORTS
 
-    def create_input(self, label: str = '', type_: str = 'data', default: Optional[Data] = None, load_from = None, insert: int = None,
-                     allowed_data: Optional[Data] = None):
+    def create_input(self, label: str = '', type_: str = 'data', default: Data | None = None, load_from = None, insert: int = None,
+                     allowed_data: Data | None = None):
         """
         Creates and adds a new input at the end or index ``insert`` if specified.
         """
@@ -368,7 +368,7 @@ class Node(Base):
         self.input_removed.emit(self, index, inp)
 
     def create_output(self, label: str = '', type_: str = 'data', load_from=None, insert: int = None,
-                      allowed_data: Optional[Data] = None):
+                      allowed_data: Data | None = None):
         """
         Creates and adds a new output at the end or index ``insert`` if specified.
         """
@@ -423,17 +423,17 @@ class Node(Base):
     #   PROGRESS
     
     @property
-    def progress(self) -> Union[ProgressState, None]:
+    def progress(self) -> ProgressState | None:
         """Copy of the current progress of execution in the node, or None if there's no active progress"""
         return copy(self._progress) if self._progress is not None else None
     
     @progress.setter
-    def progress(self, progress_state: Union[ProgressState, None]):
+    def progress(self, progress_state: ProgressState | None):
         """Sets the current progress"""
         self._progress = progress_state
         self.progress_updated.emit(self._progress)
     
-    def set_progress(self, progress_state: Union[ProgressState, None], as_percentage: bool = False):
+    def set_progress(self, progress_state: ProgressState | None, as_percentage: bool = False):
         """Sets the progress, allowing to turn it into a percentage"""
         if progress_state is not None and as_percentage:
             progress_state = progress_state.as_percentage()
@@ -511,7 +511,7 @@ class Node(Base):
 
         self.loaded = True
 
-    def data(self) -> Dict:
+    def data(self) -> dict:
         """
         Serializes the node's metadata, current configuration, and user state into
         a JSON-compatible dict, from which the node can be loaded later using
@@ -538,8 +538,10 @@ class Node(Base):
 
         return d
 
+NodeType = TypeVar('NodeType', bound=Node)
+"""A type var for type checking and hinting purposes."""
 
-def node_from_identifier(identifier: str, nodes: List[Node]):
+def node_from_identifier(identifier: str, nodes: list[Node]):
 
     for nc in nodes:
         if nc.identifier == identifier:

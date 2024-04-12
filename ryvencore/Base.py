@@ -3,7 +3,6 @@ This module defines the :code:`Base` class for most internal components,
 implementing features such as a unique ID, a system for save and load,
 and a very minimal event system.
 """
-from typing import Dict, Set
 from bisect import insort
 
 class IDCtr:
@@ -40,7 +39,7 @@ class Event:
 
     def __init__(self, *args):
         self.args = args
-        self._slots: Dict[int, Set] = {}
+        self._slots: dict[int, set] = {}
         self._ordered_slot_pos = []
         self._slot_priorities = {}
 
@@ -146,7 +145,7 @@ class Base:
         self.prev_global_id = None
         self.prev_version = None
 
-    def data(self) -> Dict:
+    def data(self) -> dict:
         """
         Convert the object to a JSON compatible dict.
         Reserved field names are 'GID' and 'version'.
@@ -160,7 +159,7 @@ class Base:
                else {})
         }
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
         """
         Recreate the object state from the data dict returned by :code:`data()`.
 

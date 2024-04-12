@@ -29,7 +29,6 @@ To define a custom add-on:
 
 See :code:`ryvencore.addons` for examples.
 """
-from typing import Dict
 
 from .Session import Session
 from .Flow import Flow
@@ -102,7 +101,7 @@ class AddOn(Base):
         """
         pass
 
-    def extend_node_data(self, node: Node, data: Dict):
+    def extend_node_data(self, node: Node, data: dict):
         """
         *VIRTUAL*
 
@@ -112,7 +111,7 @@ class AddOn(Base):
         """
         pass
 
-    def get_state(self) -> Dict:
+    def get_state(self) -> dict:
         """
         *VIRTUAL*
 
@@ -134,7 +133,7 @@ class AddOn(Base):
         """
         pass
 
-    def data(self) -> Dict:
+    def data(self) -> dict:
         """
         Supplements the data dict with additional data.
         """
@@ -143,7 +142,7 @@ class AddOn(Base):
             'custom state': self.get_state()
         }
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
         """
         Loads the data dict generated in :code:`AddOn.data()`.
         """

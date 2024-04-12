@@ -1,4 +1,3 @@
-from typing import Optional
 from dataclasses import dataclass
 from .data.Data import Data
 
@@ -6,9 +5,9 @@ from .data.Data import Data
 @dataclass
 class NodePortType:
     """
-    The NodePortBP classes are only placeholders (BP = BluePrint) for the static init_input and
+    The NodePortType classes are only placeholders for the static init_input and
     init_outputs of custom Node classes.
-    An instantiated Node's actual inputs and outputs will be of type NodeObjPort (NodeObjInput, NodeObjOutput).
+    An instantiated Node's actual inputs and outputs will be of type NodePort (NodeInput, NodeOutput).
     """
 
     label: str = ''
@@ -18,7 +17,7 @@ class NodePortType:
 
 class NodeInputType(NodePortType):
     
-    default: Optional[Data] = None
+    default: Data | None = None
 
 
 class NodeOutputType(NodePortType):

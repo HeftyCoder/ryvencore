@@ -4,7 +4,6 @@ It should be subclassed to define custom data types. In particular, serializatio
 and deserialization must be implemented for each respective type. Types that are
 pickle serializable by default can be used directly with :code`Data(my_data)`.
 """
-from typing import Dict, Type
 
 from ..Base import Base
 from ..utils import serialize, deserialize, print_err
@@ -128,14 +127,14 @@ class Data(Base):
         """
         self.payload = data     # naive default implementation
 
-    def data(self) -> Dict:
+    def data(self) -> dict:
         return {
             **super().data(),
             'identifier': self.identifier,
             'serialized': serialize(self.get_data())
         }
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
         super().load(data)
 
         if data['identifier'] != self.identifier and \
@@ -162,7 +161,7 @@ class _BuiltInData(Data):
 _BuiltInData._build_identifier()
 
 
-def check_valid_data(out_data_type: Type[Data], inp_data_type: Type[Data]) -> bool:
+def check_valid_data(out_data_type: type[Data], inp_data_type: type[Data]) -> bool:
     """
     Returns true if input data can accept the output data, otherwise false
     

@@ -90,18 +90,18 @@ Assumptions:
 """
 from .Base import Base, Event
 from .data.Data import Data
-from .FlowExecutor import DataFlowNaive, DataFlowOptimized, FlowExecutor, executor_from_flow_alg
-from .Node import Node, node_from_identifier
+from .FlowExecutor import FlowExecutor, executor_from_flow_alg
+from .Node import NodeType, node_from_identifier
 from .NodePort import NodeOutput, NodeInput, check_valid_conn
-from .RC import FlowAlg, PortObjPos, ConnValidType
+from .RC import FlowAlg, ConnValidType
 from .utils import *
-from typing import List, Dict, Optional, Tuple, Type, TYPE_CHECKING
+from typing import TypeVar, Generic, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .Session import Session
 
 
-class Flow(Base):
+class Flow(Base, Generic[NodeType]):
     """
     Manages all abstract flow components (nodes, edges, executors, etc.)
     and exposes methods for modification.
@@ -111,9 +111,9 @@ class Flow(Base):
         Base.__init__(self)
 
         # events
-        self.node_added = Event(Node)
-        self.node_removed = Event(Node)
-        self.node_created = Event(Node)
+        self.node_added = Event(NodeType)
+        self.node_removed = Event(NodeType)
+        self.node_created = Event(NodeType)
         self.connection_added = Event((NodeOutput, NodeInput))        # Event(Connection)
         self.connection_removed = Event((NodeOutput, NodeInput))      # Event (Connection)
 
@@ -130,17 +130,17 @@ class Flow(Base):
         # general attributes
         self.session: Session = session
         self.title = title
-        self.nodes: List[Node] = []
+        self.nodes: list[NodeType] = []
         self.load_data = None
 
-        self.node_successors: Dict[Node, List[Node]] = {}   # additional data structure for executors
-        self.graph_adj: Dict[NodeOutput, List[NodeInput]] = {}         # directed adjacency list relating node ports
-        self.graph_adj_rev: Dict[NodeInput, NodeOutput] = {}     # reverse adjacency; reverse of graph_adj
+        self.node_successors: dict[NodeType, list[NodeType]] = {}   # additional data structure for executors
+        self.graph_adj: dict[NodeOutput, list[NodeInput]] = {}         # directed adjacency list relating node ports
+        self.graph_adj_rev: dict[NodeInput, NodeOutput] = {}     # reverse adjacency; reverse of graph_adj
 
         self.alg_mode = FlowAlg.DATA
         self.executor: FlowExecutor = executor_from_flow_alg(self.alg_mode)(self)
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
         """Loading a flow from data as previously returned by ``Flow.data()``."""
         super().load(data)
         self.load_data = data
@@ -168,7 +168,7 @@ class Flow(Base):
         return new_nodes, new_conns
 
 
-    def _create_nodes_from_data(self, nodes_data: List) -> List[Node]:
+    def _create_nodes_from_data(self, nodes_data: list) -> list[NodeType]:
         """create nodes from nodes_data as previously returned by data()"""
 
         nodes = []
@@ -189,7 +189,7 @@ class Flow(Base):
         return nodes
 
 
-    def _set_output_values_from_data(self, nodes: List[Node], data: List):
+    def _set_output_values_from_data(self, nodes: list[NodeType], data: list):
         for d in data:
             indices = d['dependent node outputs']
             indices_paired = zip(indices[0::2], indices[1::2])
@@ -212,7 +212,7 @@ class Flow(Base):
                     data_type(load_from=d['data'])
 
 
-    def create_node(self, node_class: Type[Node], data=None):
+    def create_node(self, node_class: type[NodeType], data=None):
         """Creates, adds and returns a new node object"""
 
         if node_class not in self.session.nodes:
@@ -238,7 +238,7 @@ class Flow(Base):
         return node
 
 
-    def add_node(self, node: Node):
+    def add_node(self, node: NodeType):
         """
         Places the node object in the graph, Stores it, and causes the node's
         ``Node.place_event()`` to be executed. ``Flow.create_node()`` automatically
@@ -265,7 +265,7 @@ class Flow(Base):
         self.node_added.emit(node)
 
 
-    def remove_node(self, node: Node):
+    def remove_node(self, node: NodeType):
         """
         Removes a node from the flow without deleting it. Can be added again
         with ``Flow.add_node()``.
@@ -291,7 +291,7 @@ class Flow(Base):
         self.node_removed.emit(node)
 
 
-    def add_node_input(self, node: Node, inp: NodeInput, _call_flow_changed=True):
+    def add_node_input(self, node: NodeType, inp: NodeInput, _call_flow_changed=True):
         """updates internal data structures"""
         if node in self.node_successors:
             self.graph_adj_rev[inp] = None
@@ -299,7 +299,7 @@ class Flow(Base):
                 self._flow_changed()
 
 
-    def add_node_output(self, node: Node, out: NodeOutput, _call_flow_changed=True):
+    def add_node_output(self, node: NodeType, out: NodeOutput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             self.graph_adj[out] = []
@@ -307,7 +307,7 @@ class Flow(Base):
                 self._flow_changed()
 
 
-    def remove_node_input(self, node: Node, inp: NodeInput, _call_flow_changed=True):
+    def remove_node_input(self, node: NodeType, inp: NodeInput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             del self.graph_adj_rev[inp]
@@ -315,7 +315,7 @@ class Flow(Base):
                 self._flow_changed()
 
 
-    def remove_node_output(self, node: Node, out: NodeOutput, _call_flow_changed=True):
+    def remove_node_output(self, node: NodeType, out: NodeOutput, _call_flow_changed=True):
         """updates internal data structures."""
         if node in self.node_successors:
             del self.graph_adj[out]
@@ -323,7 +323,7 @@ class Flow(Base):
                 self._flow_changed()
 
 
-    def _connect_nodes_from_data(self, nodes: List[Node], data: List):
+    def _connect_nodes_from_data(self, nodes: list[NodeType], data: list):
         connections = []
 
         for c in data:
@@ -349,7 +349,7 @@ class Flow(Base):
         return connections
 
 
-    def check_connection_validity(self, c: Tuple[NodeOutput, NodeInput]) -> ConnValidType:
+    def check_connection_validity(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
         Checks whether a considered connect action is legal.
         
@@ -361,11 +361,11 @@ class Flow(Base):
         valid_result = check_valid_conn(out, inp)
         
         self.connection_request_valid.emit(valid_result)
-
+        
         return valid_result
 
     
-    def can_nodes_connect(self, c: Tuple[NodeOutput, NodeInput]) -> ConnValidType:
+    def can_nodes_connect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
         Same as :code:`Flow.check_connection_validity()`
         
@@ -389,7 +389,7 @@ class Flow(Base):
         return valid_result
     
     
-    def can_nodes_disconnect(self, c: Tuple[NodeOutput, NodeInput]) -> ConnValidType:
+    def can_nodes_disconnect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
         Same as :code:`Flow.check_connection_validity()`
         
@@ -408,7 +408,7 @@ class Flow(Base):
         
         return valid_result
 
-    def connect_nodes(self, out: NodeOutput, inp: NodeInput, silent=False) -> Optional[Tuple[NodeOutput, NodeInput]]:
+    def connect_nodes(self, out: NodeOutput, inp: NodeInput, silent=False) -> tuple[NodeOutput, NodeInput] | None:
         """
         Connects two node ports. Returns the connection if successful, None otherwise.
         """
@@ -438,7 +438,7 @@ class Flow(Base):
         self.remove_connection((out, inp), silent=silent)
 
 
-    def add_connection(self, c: Tuple[NodeOutput, NodeInput], silent=False):
+    def add_connection(self, c: tuple[NodeOutput, NodeInput], silent=False):
         """
         Adds an edge between two node ports.
         """
@@ -457,7 +457,7 @@ class Flow(Base):
         self.connection_added.emit((out, inp))
 
 
-    def remove_connection(self, c: Tuple[NodeOutput, NodeInput], silent=False):
+    def remove_connection(self, c: tuple[NodeOutput, NodeInput], silent=False):
         """
         Removes an edge.
         """
@@ -475,14 +475,14 @@ class Flow(Base):
         self.connection_removed.emit((out, inp))
 
 
-    def connected_inputs(self, out: NodeOutput) -> List[NodeInput]:
+    def connected_inputs(self, out: NodeOutput) -> list[NodeInput]:
         """
         Returns a list of all connected inputs to the given output port.
         """
         return self.graph_adj[out]
 
 
-    def connected_output(self, inp: NodeInput) -> Optional[NodeOutput]:
+    def connected_output(self, inp: NodeInput) -> NodeOutput | None:
         """
         Returns the connected output port to the given input port, or
         :code:`None` if it is not connected.
@@ -533,13 +533,13 @@ class Flow(Base):
         }
 
 
-    def _gen_nodes_data(self, nodes: List[Node]) -> List[dict]:
+    def _gen_nodes_data(self, nodes: list[NodeType]) -> list[dict]:
         """Returns the data dicts of the nodes given"""
 
         return [n.data() for n in nodes]
 
 
-    def _gen_conns_data(self, nodes: List[Node]) -> List[dict]:
+    def _gen_conns_data(self, nodes: list[NodeType]) -> list[dict]:
         """Generates the connections data between and relative to the nodes passed"""
 
         # notice that this is intentionally not part of Connection, because connection data
@@ -561,7 +561,7 @@ class Flow(Base):
         return data
 
 
-    def _gen_output_data(self, nodes: List[Node]) -> List[Dict]:
+    def _gen_output_data(self, nodes: list[NodeType]) -> list[dict]:
         """Serializes output data of the nodes"""
 
         outputs_data = {}

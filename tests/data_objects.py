@@ -4,7 +4,6 @@ import ryvencore as rc
 from ryvencore.data.built_in import *
 from ryvencore.data.built_in.collections.abc import *
 from ryvencore.data import Data, check_valid_data
-from ryvencore.NodePort import check_valid_conn
 
 class DataTypesBasic(unittest.TestCase):
 

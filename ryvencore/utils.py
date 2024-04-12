@@ -1,18 +1,15 @@
-"""A collection of useful functions used by different components."""
+"""A collection of useful functions and definitions used by different components."""
 
 import base64
 import json
 import pickle
 import sys
-from os.path import dirname, abspath, join, basename
-from typing import List, Tuple, Dict
-from packaging.version import Version, parse as _parse_version
 import importlib.util
+import importlib.metadata as importlib_metadata
 
-if sys.version_info < (3, 8):
-    import importlib_metadata
-else:
-    import importlib.metadata as importlib_metadata
+from os.path import dirname, abspath, join, basename
+from packaging.version import Version, parse as _parse_version
+
 
 def pkg_version() -> str:
     return importlib_metadata.version('ryvencore')
@@ -42,12 +39,12 @@ def print_err(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def json_print(d: Dict):
+def json_print(d: dict):
     # I just need this all the time
     print(json.dumps(d, indent=4))
 
 
-def load_from_file(file: str, comps: List[str]) -> Tuple:
+def load_from_file(file: str, comps: list[str]) -> tuple:
     """
     Imports components with name in ``comps`` from a python module.
     """

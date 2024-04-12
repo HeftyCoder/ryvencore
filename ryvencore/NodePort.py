@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Type, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .Base import Base
 from .utils import serialize, deserialize
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class NodePort(Base):
     """Base class for inputs and outputs of nodes"""
 
-    def __init__(self, node, io_pos: PortObjPos, type_: str, label_str: str, allowed_data: Optional[Type[Data]] = None):
+    def __init__(self, node, io_pos: PortObjPos, type_: str, label_str: str, allowed_data: type[Data] | None = None):
         Base.__init__(self)
 
         self.node: Node = node
@@ -22,7 +22,8 @@ class NodePort(Base):
         self.load_data = None
         self.allowed_data = allowed_data
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
+        
         self.load_data = data
         self.type_ = data['type']
         self.label_str = data['label']
@@ -32,6 +33,7 @@ class NodePort(Base):
             self.allowed_data = self.node.session.get_data_type(data_id)
         
     def data(self) -> dict:
+        
         return {
             **super().data(),
             'type': self.type_,
@@ -42,17 +44,18 @@ class NodePort(Base):
 
 class NodeInput(NodePort):
 
-    def __init__(self, node, type_: str, label_str: str = '', default: Optional[Data] = None, allowed_data: Optional[Type[Data]] = None):
+    def __init__(self, node, type_: str, label_str: str = '', default: Data | None = None, allowed_data: type[Data] | None = None):
         super().__init__(node, PortObjPos.INPUT, type_, label_str, allowed_data)
 
-        self.default: Optional[Data] = default
+        self.default = default
 
-    def load(self, data: Dict):
+    def load(self, data: dict):
         super().load(data)
 
         self.default = Data(load_from=data['default']) if 'default' in data else None
 
-    def data(self) -> Dict:
+    def data(self) -> dict:
+        
         default = {'default': self.default.data()} if self.default is not None else {}
 
         return {
@@ -61,10 +64,10 @@ class NodeInput(NodePort):
         }
 
 class NodeOutput(NodePort):
-    def __init__(self, node, type_: str, label_str: str = '', allowed_data: Optional[Type[Data]] = None):
+    def __init__(self, node, type_: str, label_str: str = '', allowed_data: type[Data] | None = None):
         super().__init__(node, PortObjPos.OUTPUT, type_, label_str, allowed_data)
 
-        self.val: Optional[Data] = None
+        self.val: Data | None = None
 
     # def data(self) -> dict:
     #     data = super().data()
@@ -98,7 +101,7 @@ def check_valid_conn(out: NodeOutput, inp: NodeInput) -> ConnValidType:
     
     return ConnValidType.VALID
 
-def check_valid_conn_tuple(connection: Tuple[NodeOutput, NodeInput]):
+def check_valid_conn_tuple(connection: tuple[NodeOutput, NodeInput]):
     out, inp = connection
     return check_valid_conn(out, inp)
     
