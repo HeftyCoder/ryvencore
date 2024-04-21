@@ -300,7 +300,7 @@ class Session(Base):
             **super().data(),
             'flows': {
                 f.title: f.data()
-                for f in self.flows
+                for f in self.flows.values()
             },
             'addons': {
                 name: addon.data() for name, addon in self.addons.items()
