@@ -571,7 +571,7 @@ class Flow(Base):
                             'parent node index': i,
                             'output port index': j,
                             'connected node': nodes.index(inp.node),
-                            'connected input port index': inp.node.inputs.index(inp),
+                            'connected input port index': inp.node._inputs.index(inp),
                         })
 
         return data
