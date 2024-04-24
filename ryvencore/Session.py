@@ -9,6 +9,7 @@ from .Flow import Flow
 from .InfoMsgs import InfoMsgs
 from .utils import pkg_version, pkg_path, load_from_file, print_err
 from .Node import Node
+from types import MappingProxyType
 
 if TYPE_CHECKING:
     from AddOn import AddOn
@@ -40,10 +41,16 @@ class Session(Base):
         
         # ATTRIBUTES
         self.addons: dict[str, AddOn] = {}
-        self.flows: dict[str, Flow] = {}
+        
+        self._flows: dict[str, Flow] = {}
+        self._flows_proxy = MappingProxyType(self._flows)
+        
+        self._data_types: dict[str, type[Data]] = {}
+        self._data_types_proxy = MappingProxyType(self._data_types)
+        
         self.nodes: set[type[Node]] = set()      # list of node CLASSES
         self.invisible_nodes: set[type[Node]] = set()
-        self.data_types: dict[str, type[Data]] = {}
+        
         self.gui: bool = gui
         self.init_data = None
 
@@ -53,7 +60,14 @@ class Session(Base):
         if load_addons:
             self.register_addons()
 
-
+    @property
+    def flows(self):
+        return self._flows_proxy
+    
+    @property
+    def data_types(self):
+        return self._data_types_proxy
+    
     def register_addons(self, location: str | None = None):
         """
         Loads all addons from the given location, or from ryvencore's
@@ -87,7 +101,7 @@ class Session(Base):
             # establish event connections
             self.flow_created.sub(addon.on_flow_created, nice=-5)
             self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
-            for f in self.flows.values():
+            for f in self._flows.values():
                 addon.connect_flow_events(f)
 
 
@@ -124,7 +138,7 @@ class Session(Base):
         Returns a list of all node objects instantiated in any flow.
         """
 
-        return [n for f in self.flows.values() for n in f.nodes]
+        return [n for f in self._flows.values() for n in f.nodes]
 
 
     def register_data_type(self, data_type_class: type[Data]):
@@ -136,14 +150,14 @@ class Session(Base):
         data_type_class._build_identifier()
         
         id = data_type_class.identifier
-        if id == 'Data' or id in self.data_types:
+        if id == 'Data' or id in self._data_types:
             print_err(
                 f'Data type identifier "{id}" is already registered. '
                 f'skipping. You can use the "identifier" attribute of '
                 f'your Data subclass.')
             return
 
-        self.data_types[id] = data_type_class
+        self._data_types[id] = data_type_class
 
 
     def register_data_types(self, data_type_classes: list[type[Data]]):
@@ -171,7 +185,7 @@ class Session(Base):
         Retrieves a data type with a specific id, if it exists
         """
         
-        return self.data_types.get(id)
+        return self._data_types.get(id)
         
         
     def create_flow(self, title: str = None, data: dict = None) -> Flow | None:
@@ -188,7 +202,7 @@ class Session(Base):
         if not self.new_flow_title_valid(flow.title):
             return None
         
-        self.flows[flow.title] = flow
+        self._flows[flow.title] = flow
         self.flow_created.emit(flow)
 
         return flow
@@ -202,9 +216,9 @@ class Session(Base):
         success = False
 
         if self.new_flow_title_valid(title):
-            del self.flows[flow.title]
+            del self._flows[flow.title]
             flow.title = title
-            self.flows[title] = flow
+            self._flows[title] = flow
             success = True
             self.flow_renamed.emit(flow, title)
 
@@ -216,7 +230,7 @@ class Session(Base):
         Checks whether a considered title for a new flow is valid (unique) or not.
         """
 
-        return len(title) != 0 and title not in self.flows
+        return len(title) != 0 and title not in self._flows
 
 
     def delete_flow(self, flow: Flow):
@@ -224,10 +238,10 @@ class Session(Base):
         Deletes an existing flow.
         """
         
-        if flow.title not in self.flows or flow != self.flows[flow.title]:
+        if flow.title not in self._flows or flow != self._flows[flow.title]:
             return False
         
-        del self.flows[flow.title]
+        del self._flows[flow.title]
         self.flow_deleted.emit(flow)
         return True
 
@@ -300,7 +314,7 @@ class Session(Base):
             **super().data(),
             'flows': {
                 f.title: f.data()
-                for f in self.flows.values()
+                for f in self._flows.values()
             },
             'addons': {
                 name: addon.data() for name, addon in self.addons.items()

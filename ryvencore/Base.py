@@ -43,6 +43,11 @@ class Event:
         self._ordered_slot_pos = []
         self._slot_priorities = {}
 
+    def clear(self):
+        self._slots: dict[int, set] = {}
+        self._ordered_slot_pos = []
+        self._slot_priorities = {}
+        
     def sub(self, callback, nice=0):
         """
         Registers a callback function. The callback must accept compatible arguments.
