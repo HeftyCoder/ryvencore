@@ -42,13 +42,14 @@ class Event:
         self._slots: dict[int, set] = {}
         self._ordered_slot_pos = []
         self._slot_priorities = {}
+        self._one_offs = set()
 
     def clear(self):
         self._slots: dict[int, set] = {}
         self._ordered_slot_pos = []
         self._slot_priorities = {}
         
-    def sub(self, callback, nice=0):
+    def sub(self, callback, nice=0, one_off=False):
         """
         Registers a callback function. The callback must accept compatible arguments.
         The optional :code:`nice` parameter can be used to set the priority of the
@@ -65,11 +66,20 @@ class Event:
             insort(self._ordered_slot_pos, nice)
             
         cb_set.add(callback)
+        if one_off:
+            self._one_offs.add(callback)
         self._slot_priorities[callback] = nice
 
     def unsub(self, callback):
         """
         De-registers a callback function. The function must have been added previously.
+        """
+        self.__unsub(callback, True)
+    
+    def __unsub(self, callback, check_one_off):
+        """
+        De-registers a function that was added. If check_one_off, attempts to remove
+        it as a one_off function. This is an internal function.
         """
         nice = self._slot_priorities[callback]
         cb_set = self._slots[nice]
@@ -79,6 +89,9 @@ class Event:
         if len(cb_set) == 0:
             del self._slots[nice]
             self._ordered_slot_pos.remove(nice)
+        
+        if check_one_off and callback in self._one_offs:
+            self._one_offs.remove(callback)
 
     def emit(self, *args):
         """
@@ -90,6 +103,11 @@ class Event:
         for nice in self._ordered_slot_pos:
             for cb in self._slots[nice]:
                 cb(*args)
+        
+        for one_off_func in self._one_offs:
+            self.__unsub(one_off_func, False)
+        
+        self._one_offs.clear()
 
 
 class Base:
