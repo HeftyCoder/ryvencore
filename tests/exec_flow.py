@@ -16,7 +16,7 @@ class Node1(rc.Node):
 
 class Node2(rc.Node):
     title = 'node 2'
-    init_inputs = [rc.NodeInputType(type_='exec'), rc.NodeInputType(type_='data')]
+    init_inputs = [rc.PortConfig(type_='exec'), rc.PortConfig(type_='data')]
     init_outputs = []
 
     def __init__(self, params):

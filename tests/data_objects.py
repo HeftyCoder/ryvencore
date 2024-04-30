@@ -14,7 +14,7 @@ class DataTypesBasic(unittest.TestCase):
             self.set_output_val(0, rc.Data(42))
 
     class Consumer(rc.Node):
-        init_inputs = [rc.NodeInputType()]
+        init_inputs = [rc.PortConfig()]
 
         def __init__(self, params):
             super().__init__(params)
@@ -56,7 +56,7 @@ class DataTypesCustom(unittest.TestCase):
             self.set_output_val(0, DataTypesCustom.MyData(42))
 
     class Consumer(rc.Node):
-        init_inputs = [rc.NodeInputType()]
+        init_inputs = [rc.PortConfig()]
 
         def __init__(self, params):
             super().__init__(params)
@@ -95,8 +95,8 @@ class DataTypesBuiltIn(unittest.TestCase):
     
     class Producer(rc.Node):
         init_outputs = [
-            rc.NodeOutputType(allowed_data=ComplexData),
-            rc.NodeOutputType(allowed_data=ListData),
+            rc.PortConfig(allowed_data=ComplexData),
+            rc.PortConfig(allowed_data=ListData),
         ]
 
         def update_event(self, inp=-1):
@@ -104,9 +104,9 @@ class DataTypesBuiltIn(unittest.TestCase):
 
     class Consumer(rc.Node):
         init_inputs = [
-            rc.NodeInputType(allowed_data=NumberData),
-            rc.NodeInputType(allowed_data=ListData),
-            rc.NodeInputType(allowed_data=SequenceData),
+            rc.PortConfig(allowed_data=NumberData),
+            rc.PortConfig(allowed_data=ListData),
+            rc.PortConfig(allowed_data=SequenceData),
         ]
 
         def __init__(self, params):

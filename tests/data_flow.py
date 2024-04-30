@@ -20,7 +20,7 @@ class Node1(NodeBase):
 
 class Node2(NodeBase):
     title = 'node 2'
-    init_inputs = [rc.NodeInputType(default=rc.Data('default value'))]
+    init_inputs = [rc.PortConfig(default=rc.Data('default value'))]
     init_outputs = []
 
     def update_event(self, inp=-1):

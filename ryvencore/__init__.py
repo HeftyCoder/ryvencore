@@ -5,7 +5,7 @@ from .Flow import Flow
 from .data.Data import Data
 from .AddOn import AddOn
 from .Node import Node
-from .NodePortType import NodeInputType, NodeOutputType
+from .NodePort import PortConfig
 from .utils import serialize, deserialize
 
 def set_complete_data_func(func):

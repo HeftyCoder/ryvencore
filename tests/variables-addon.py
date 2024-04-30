@@ -50,7 +50,7 @@ class Node1(NodeBase):
 
 class Node2(NodeBase):
     title = 'node 2'
-    init_inputs = [rc.NodeInputType()]
+    init_inputs = [rc.PortConfig()]
     init_outputs = []
 
     def update_event(self, inp=-1):

@@ -5,10 +5,26 @@ from .utils import serialize, deserialize
 
 from .RC import PortObjPos, ConnValidType
 from .data import Data, check_valid_data
-
+from dataclasses import dataclass
 if TYPE_CHECKING:
     from .Node import Node
 
+@dataclass
+class PortConfig:
+    """
+    The PortConfig class is a placeholder for the static init_input and
+    init_outputs of custom Node classes.
+    An instantiated Node's actual inputs and outputs will be of type NodePort (NodeInput, NodeOutput).
+    """
+    
+    label: str = ''
+    type_: str = 'data'
+    allowed_data: Data = None
+    default: Data | None = None
+
+default_config = PortConfig()
+"""An instance of a default port configuration"""
+ 
 class NodePort(Base):
     """Base class for inputs and outputs of nodes"""
 
@@ -69,12 +85,6 @@ class NodeOutput(NodePort):
 
         self.val: Data | None = None
 
-    # def data(self) -> dict:
-    #     data = super().data()
-    #
-    #     data['val'] = self.val if self.val is None else self.val.get_data()
-    #
-    #     return data
 
 def check_valid_conn(out: NodeOutput, inp: NodeInput) -> ConnValidType:
     """

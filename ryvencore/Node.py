@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING
 
 from .Base import Base, Event
 
-from .NodePort import NodeInput, NodeOutput
-from .NodePortType import NodeInputType, NodeOutputType
+from .NodePort import default_config, PortConfig, NodeInput, NodeOutput
 from .data.Data import Data
 from .InfoMsgs import InfoMsgs
 from .utils import serialize, deserialize
@@ -32,10 +31,10 @@ class Node(Base):
     version: str = None
     """version tag, use it!"""
 
-    init_inputs: list[NodeInputType] = []
+    init_inputs: list[PortConfig] = []
     """list of node input types determining the initial inputs"""
 
-    init_outputs: list[NodeOutputType] = []
+    init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
 
     identifier: str = None
@@ -108,14 +107,11 @@ class Node(Base):
         if not inputs_data and not outputs_data:
             # generate initial ports
 
-            for i in range(len(self.init_inputs)):
-                inp = self.init_inputs[i]
+            for p_info in self.init_inputs:
+                self.create_input(p_info)
 
-                self.create_input(label=inp.label, type_=inp.type_, default=inp.default, allowed_data=inp.allowed_data)
-
-            for o in range(len(self.init_outputs)):
-                out = self.init_outputs[o]
-                self.create_output(out.label, out.type_, allowed_data=out.allowed_data)
+            for p_info in self.init_outputs:
+                self.create_output(p_info)
 
         else:
             # load from data
@@ -123,12 +119,6 @@ class Node(Base):
 
             for inp in inputs_data:
                 self.create_input(load_from=inp)
-
-                # if 'val' in inp:
-                #     # this means the input is 'data' and did not have any connections,
-                #     # so we saved its value which was probably represented by some widget
-                #     # in the front end which has probably overridden the Node.input() method
-                #     self.inputs[-1].val = deserialize(inp['val'])
 
             for out in outputs_data:
                 self.create_output(load_from=out)
@@ -323,14 +313,20 @@ class Node(Base):
 
     #   PORTS
 
-    def create_input(self, label: str = '', type_: str = 'data', default: Data | None = None, load_from = None, insert: int = None,
-                     allowed_data: Data | None = None):
+    def create_input(self, port_info: PortConfig = None, load_from = None, insert: int = None):
         """
         Creates and adds a new input at the end or index ``insert`` if specified.
         """
-        # InfoMsgs.write('create_input called')
+        
+        p_info = port_info if port_info else default_config
 
-        inp = NodeInput(node=self, type_=type_, label_str=label, default=default, allowed_data=allowed_data)
+        inp = NodeInput(
+            node=self, 
+            type_=p_info.type_, 
+            label_str=p_info.label, 
+            default=p_info.default, 
+            allowed_data=p_info.allowed_data
+        )
 
         if load_from is not None:
             inp.load(load_from)
@@ -365,17 +361,18 @@ class Node(Base):
 
         self.input_removed.emit(self, index, inp)
 
-    def create_output(self, label: str = '', type_: str = 'data', load_from=None, insert: int = None,
-                      allowed_data: Data | None = None):
+    def create_output(self, port_info: PortConfig = None, load_from=None, insert: int = None):
         """
         Creates and adds a new output at the end or index ``insert`` if specified.
         """
 
+        p_info = port_info if port_info else default_config
+        
         out = NodeOutput(
             node=self,
-            type_=type_,
-            label_str=label,
-            allowed_data=allowed_data
+            type_=p_info.type_,
+            label_str=p_info.label,
+            allowed_data=p_info.allowed_data
         )
 
         if load_from is not None:
