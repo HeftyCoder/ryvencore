@@ -37,7 +37,8 @@ class Session(Base):
         self.flow_deleted = Event(Flow)
         
         # ATTRIBUTES
-        self.addons: dict[str, AddOn] = {}
+        self._addons: dict[str, AddOn] = {}
+        self._addons_proxy = MappingProxyType(self._addons)
         
         self._flows: dict[str, Flow] = {}
         self._flows_proxy = MappingProxyType(self._flows)
@@ -60,7 +61,10 @@ class Session(Base):
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
                 
-
+    @property
+    def addons(self):
+        return self._addons_proxy
+    
     @property
     def flows(self):
         return self._flows_proxy
@@ -95,7 +99,7 @@ class Session(Base):
         mod_addons: list[type[AddOn]] = get_mod_classes(addon_mod, filter=addon_class_filter)
         for addon_type in mod_addons:
             addon_name = addon_type.addon_name()
-            if addon_name in self.addons:
+            if addon_name in self._addons:
                 InfoMsgs.write(f"Addon with name {addon_name} has already been registerd!")
                 continue
             
@@ -106,13 +110,13 @@ class Session(Base):
         """Registers an addon"""
         
         addon_name = addon.addon_name()
-        if addon.addon_name() in self.addons:
+        if addon.addon_name() in self._addons:
             return
         if not isinstance(addon, AddOn):
             addon = addon()
         
         addon.register(self)
-        self.addons[addon_name] = addon
+        self._addons[addon_name] = addon
         self.flow_created.sub(addon.on_flow_created, nice=-5)
         self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
                 
@@ -122,15 +126,15 @@ class Session(Base):
     def unregister_addon(self, addon: str | AddOn):
         """Unregisters an addon"""
         addon_name = addon if isinstance(addon, str) else addon.addon_name()
-        if addon_name in self.addons:
-            to_remove = self.addons[addon_name]
+        if addon_name in self._addons:
+            to_remove = self._addons[addon_name]
             self.flow_created.unsub(to_remove.on_flow_created)
             self.flow_deleted.unsub(to_remove.on_flow_destroyed)
             
             for f in self._flows.values():
                 to_remove.disconnect_flow_events(f)
                 
-            del self.addons[addon_name]
+            del self._addons[addon_name]
 
     def register_node_types(self, node_types: list[type[Node]]):
         """
@@ -194,6 +198,7 @@ class Session(Base):
         """
 
         for d in data_type_classes:
+            print(d)
             self.register_data_type(d)
 
     
@@ -293,8 +298,8 @@ class Session(Base):
 
         # load addons
         for name, addon_data in data['addons'].items():
-            if name in self.addons:
-                self.addons[name].load(addon_data)
+            if name in self._addons:
+                self._addons[name].load(addon_data)
             else:
                 print(f'found missing addon: {name}; attempting to load anyway')
 
@@ -344,6 +349,6 @@ class Session(Base):
                 for f in self._flows.values()
             },
             'addons': {
-                name: addon.data() for name, addon in self.addons.items()
+                name: addon.data() for name, addon in self._addons.items()
             }
         }

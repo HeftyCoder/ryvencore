@@ -1,5 +1,5 @@
+from __future__ import annotations
 from packaging.version import parse as parse_version
-
 from .. import Node, Data, AddOn, Flow
 from ..base import Event
 from ..info_msgs import InfoMsgs
@@ -16,7 +16,7 @@ class Variable:
     Storing other data will break save&load.
     """
 
-    def __init__(self, addon, flow, name='', val=None, data=None):
+    def __init__(self, addon: VarsAddon, flow: Flow, name='', val=None, data=None):
         self.addon = addon
         self.flow = flow
         self.name = name

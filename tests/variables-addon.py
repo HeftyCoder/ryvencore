@@ -5,7 +5,7 @@ from utils import check_addon_available
 
 check_addon_available('Variables', __file__)
 
-from ryvencore.addons.Variables import addon as Variables
+from ryvencore.addons.variables import VarsAddon
 
 
 class NodeBase(rc.Node):
@@ -13,7 +13,7 @@ class NodeBase(rc.Node):
     def __init__(self, params):
         super().__init__(params)
 
-        self.Vars: Variables = self.get_addon('Variables')
+        self.Vars: VarsAddon = self.get_addon('Variables')
 
     def create_var1(self):
         if not self.Vars.var_exists(self.flow, 'var1'):

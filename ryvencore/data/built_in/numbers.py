@@ -13,8 +13,13 @@ class NumberData(_BuiltInData):
     fallback_type = None
     """Fallback type to attempt instantiation if the value is not of number_type"""
     
-    def __init__(self, value: number_type, load_from=None):
-        super().__init__(value, load_from)
+    def __init__(self, value: number_type = None, load_from=None):
+        
+        if value:
+            number = value
+        elif self.fallback_type:
+            number = self.fallback_type()
+        super().__init__(number, load_from)
     
     @property
     def payload(self) -> number_type:
@@ -33,14 +38,26 @@ class ComplexData(NumberData):
     number_type = Complex
     fallback_type = complex
     
+    def __init__(self, value: Complex = complex(), load_from=None):
+        super().__init__(value, load_from)
+    
 class RealData(ComplexData):
     number_type = Real
     fallback_type = float
+    
+    def __init__(self, value: Real = float(), load_from=None):
+        super().__init__(value, load_from)
     
 class RationalData(RealData):
     number_type = Rational
     fallback_type = Fraction
     
+    def __init__(self, value: Rational = Fraction(), load_from=None):
+        super().__init__(value, load_from)
+    
 class IntegerData(RationalData):
     number_type = Integral
     fallback_type = int 
+    
+    def __init__(self, value: Integral = int(), load_from=None):
+        super().__init__(value, load_from)

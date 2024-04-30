@@ -27,6 +27,9 @@ class _BaseStructureData(_BuiltInData):
     
     collection_type = None
     """Type from collections module that the payload must conform to"""
+    
+    def __init__(self, value=None, load_from=None):
+        super().__init__(value, load_from)
 
     @property
     def payload(self):
