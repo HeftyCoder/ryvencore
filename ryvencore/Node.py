@@ -152,14 +152,18 @@ class Node(Base):
         """
 
         if self.block_updates:
-            InfoMsgs.write('update blocked in', self.title, 'node')
             return
-
-        InfoMsgs.write('update in', self.title, 'node on input', inp)
 
         # invoke update_event
         self.updating.emit(inp)
         self.flow.executor.update_node(self, inp)
+    
+    def update_port(self, port: NodeInput):
+        """
+        Activates the node if the given input port can be found.
+        """
+        
+        self.update(self._inputs.index(port))
 
     def update_err(self, e):
         InfoMsgs.write_err('EXCEPTION in', self.title, '\n', traceback.format_exc())
@@ -171,8 +175,6 @@ class Node(Base):
 
         Do not call on exec inputs.
         """
-
-        InfoMsgs.write('input called in', self.title, ':', index)
 
         return self.flow.executor.input(self, index)
     
@@ -194,8 +196,6 @@ class Node(Base):
         Do not call on data outputs.
         """
 
-        InfoMsgs.write('executing output', index, 'in:', self.title)
-
         self.flow.executor.exec_output(self, index)
 
     def set_output_val(self, index: int, data: Data):
@@ -209,8 +209,6 @@ class Node(Base):
                     else Data) 
         
         assert isinstance(data, data_type), f"Output value must be of type {data_type.__module__}.{data_type.__name__}"
-
-        InfoMsgs.write('setting output', index, 'in', self.title)
 
         self.flow.executor.set_output_val(self, index, data)
         
