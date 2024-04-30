@@ -1,6 +1,3 @@
-import glob
-from typing import TYPE_CHECKING
-
 from .data import Data 
 from .data.built_in import get_built_in_data_types 
 from .base import Base, Event
@@ -12,7 +9,6 @@ from .addons.base import AddOn
 
 from importlib import import_module
 from types import MappingProxyType
-from os.path import basename, split
 
 
 class Session(Base):
@@ -58,8 +54,12 @@ class Session(Base):
         # Register Built-In Data Types
         self.register_data_types(get_built_in_data_types())
         
+        # Load built-in addons
         if load_addons:
-            self.load_addons()
+            from .addons.builtin import built_in_addons
+            for addon_type in built_in_addons:
+                self.register_addon(addon_type)
+                
 
     @property
     def flows(self):
@@ -69,15 +69,16 @@ class Session(Base):
     def data_types(self):
         return self._data_types_proxy
     
-    def load_addons(self, location: str | None = None):
-        """Loads all addons found in every module inside the given directory"""
+    # TODO: Think of an importing solution for outside addons
+    # def load_addons(self, location: str | None = None):
+    #     """Loads all addons found in every module inside the given directory"""
         
-        pkg_loc = location
-        addons = filter(lambda p: not p.endswith('__init__.py'), glob.glob(pkg_loc + '/*.py'))
+    #     pkg_loc = location if location else pkg_path('addons/')
+    #     addons = filter(lambda p: not p.endswith('__init__.py'), glob.glob(pkg_loc + '/*.py'))
         
-        for path in addons:
-            mod_name = basename(path).removesuffix('.py')
-            self.import_mod_addons(mod_name)
+    #     for path in addons:
+    #         mod_name = basename(path).removesuffix('.py')
+    #         self.import_mod_addons(mod_name)
 
     def import_mod_addons(self, mod_name: str, package_name: str | None = None):
         """Imports all addons found in a specific module using importlib import_module"""
@@ -85,7 +86,7 @@ class Session(Base):
         try:
             addon_mod = import_module(mod_name, package_name)
         except Exception as e:
-            InfoMsgs.write(e)
+            InfoMsgs.write(str(e))
             return
         
         def addon_class_filter(obj):
@@ -101,11 +102,17 @@ class Session(Base):
             addon = addon_type()
             self.register_addon(addon)
         
-    def register_addon(self, addon: AddOn):
+    def register_addon(self, addon: AddOn | type[AddOn]):
         """Registers an addon"""
+        
+        addon_name = addon.addon_name()
         if addon.addon_name() in self.addons:
             return
+        if not isinstance(addon, AddOn):
+            addon = addon()
         
+        addon.register(self)
+        self.addons[addon_name] = addon
         self.flow_created.sub(addon.on_flow_created, nice=-5)
         self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
                 

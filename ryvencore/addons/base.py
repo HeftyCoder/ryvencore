@@ -32,8 +32,6 @@ See :code:`ryvencore.addons` for examples.
 
 from __future__ import annotations
 from ..base import Base
-from ..info_msgs import InfoMsgs
-from types import MappingProxyType
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..session import Session

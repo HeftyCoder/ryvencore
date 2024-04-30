@@ -2,7 +2,7 @@ from packaging.version import parse as parse_version
 
 from .. import Node, Data, AddOn, Flow
 from ..base import Event
-from ..utils import print_err
+from ..info_msgs import InfoMsgs
 
 
 ADDON_VERSION = '0.4'
@@ -297,7 +297,8 @@ class VarsAddon(AddOn):
         """"""
 
         if parse_version(version) < parse_version('0.4'):
-            print_err('Variables addon state version too old, skipping')
+            
+            InfoMsgs.write_err('Variables addon state version too old, skipping')
             return
 
         # JSON converts int keys to strings, so we need to convert them back
