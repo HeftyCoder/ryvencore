@@ -9,6 +9,9 @@ import importlib.metadata as importlib_metadata
 
 from os.path import dirname, abspath, join, basename
 from packaging.version import Version, parse as _parse_version
+from types import ModuleType
+from typing import Callable, Any
+from inspect import getmembers, isclass
 
 
 def pkg_version() -> str:
@@ -44,31 +47,24 @@ def json_print(d: dict):
     print(json.dumps(d, indent=4))
 
 
-def load_from_file(file: str, comps: list[str]) -> tuple:
+def get_mod_classes(mod: str | ModuleType, to_fill: list | None = None, filter: Callable[[Any], bool] = None):
     """
-    Imports components with name in ``comps`` from a python module.
+    Returns a list of classes defined in the current file.
+    
+    The filter paramater is a function that takes the object and returns if it should be included.
     """
-    # https://stackoverflow.com/questions/67631/how-do-i-import-a-module-given-the-full-path
+    
+    current_module = mod if isinstance(mod, ModuleType) else sys.modules[mod]
 
-    name = basename(file).split('.')[0]
-    spec = importlib.util.spec_from_file_location(name, file)
-    importlib.util.module_from_spec(spec)
+    classes = to_fill if to_fill else []
+    for _, obj in getmembers(current_module):
+        if not (isclass(obj) and obj.__module__ == current_module.__name__):
+            continue
+        if filter and not filter(obj):
+            continue
+        classes.append(obj)
 
-    # TODO
-    #  I'm using the deprecated load_module() instead of
-    #  exec_module() because I had issues with exec_module().
-    #  exec_module() somehow registers it as "built-in" which
-    #  is wrong and prevents features, such as inspecting
-    #  the source with inspect
-    mod = spec.loader.load_module(name)
-
-    def get_comp(c):
-        try:
-            return getattr(mod, c)
-        except AttributeError:
-            return None
-
-    return tuple([get_comp(c) for c in comps])
+    return classes
 
 
 

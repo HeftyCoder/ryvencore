@@ -1,5 +1,4 @@
 import glob
-import os.path
 from typing import TYPE_CHECKING
 
 from .data import Data 
@@ -7,13 +6,15 @@ from .data.built_in import get_built_in_data_types
 from .base import Base, Event
 from .flow import Flow
 from .info_msgs import InfoMsgs
-from .utils import pkg_version, pkg_path, load_from_file, print_err
+from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
-from types import MappingProxyType
+from .addons.base import AddOn
 
-if TYPE_CHECKING:
-    from ryvencore.addons.base import AddOn
-    
+from importlib import import_module
+from types import MappingProxyType
+from os.path import basename, split
+
+
 class Session(Base):
     """
     The Session is the top level interface to your project. It mainly manages flows, nodes, and add-ons and
@@ -22,7 +23,7 @@ class Session(Base):
 
     version = pkg_version()
     
-    _flow_base_type: type[Flow] = Flow
+    _flow_base_type = Flow
     """
     Forces the Session to accept a specific type of base Flow.
     """
@@ -58,7 +59,7 @@ class Session(Base):
         self.register_data_types(get_built_in_data_types())
         
         if load_addons:
-            self.register_addons()
+            self.load_addons()
 
     @property
     def flows(self):
@@ -68,42 +69,61 @@ class Session(Base):
     def data_types(self):
         return self._data_types_proxy
     
-    def register_addons(self, location: str | None = None):
-        """
-        Loads all addons from the given location, or from ryvencore's
-        *addons* directory if :code:`location` is :code:`None`.
-        :code:`location` can be an absolute path to any readable directory.
-        New addons can be registered at any time.
-        Addons cannot be de-registered.
-        See :code:`ryvencore.AddOn`.
-        """
-
-        if location is None:
-            location = pkg_path('addons/')
-
-        # discover all top-level modules in the given location
-        addons = filter(lambda p: not p.endswith('__init__.py'), glob.glob(location + '/*.py'))
-
+    def load_addons(self, location: str | None = None):
+        """Loads all addons found in every module inside the given directory"""
+        
+        pkg_loc = location
+        addons = filter(lambda p: not p.endswith('__init__.py'), glob.glob(pkg_loc + '/*.py'))
+        
         for path in addons:
-            # extract 'addon' object from module
-            addon, = load_from_file(path, ['addon'])
+            mod_name = basename(path).removesuffix('.py')
+            self.import_mod_addons(mod_name)
 
-            if addon is None:
+    def import_mod_addons(self, mod_name: str, package_name: str | None = None):
+        """Imports all addons found in a specific module using importlib import_module"""
+        
+        try:
+            addon_mod = import_module(mod_name, package_name)
+        except Exception as e:
+            InfoMsgs.write(e)
+            return
+        
+        def addon_class_filter(obj):
+            return issubclass(obj, AddOn) and obj.__class__ != AddOn
+        
+        mod_addons: list[type[AddOn]] = get_mod_classes(addon_mod, filter=addon_class_filter)
+        for addon_type in mod_addons:
+            addon_name = addon_type.addon_name()
+            if addon_name in self.addons:
+                InfoMsgs.write(f"Addon with name {addon_name} has already been registerd!")
                 continue
-
-            # register addon
-            modname = os.path.split(path)[-1][:-3]
-            self.addons[modname] = addon
-
-            addon.register(self)
-            # setattr(Node, addon.name, addon)
-
-            # establish event connections
-            self.flow_created.sub(addon.on_flow_created, nice=-5)
-            self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
+            
+            addon = addon_type()
+            self.register_addon(addon)
+        
+    def register_addon(self, addon: AddOn):
+        """Registers an addon"""
+        if addon.addon_name() in self.addons:
+            return
+        
+        self.flow_created.sub(addon.on_flow_created, nice=-5)
+        self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
+                
+        for f in self._flows.values():
+            addon.connect_flow_events(f)
+    
+    def unregister_addon(self, addon: str | AddOn):
+        """Unregisters an addon"""
+        addon_name = addon if isinstance(addon, str) else addon.addon_name()
+        if addon_name in self.addons:
+            to_remove = self.addons[addon_name]
+            self.flow_created.unsub(to_remove.on_flow_created)
+            self.flow_deleted.unsub(to_remove.on_flow_destroyed)
+            
             for f in self._flows.values():
-                addon.connect_flow_events(f)
-
+                to_remove.disconnect_flow_events(f)
+                
+            del self.addons[addon_name]
 
     def register_node_types(self, node_types: list[type[Node]]):
         """

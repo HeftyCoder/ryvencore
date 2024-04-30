@@ -30,16 +30,26 @@ To define a custom add-on:
 See :code:`ryvencore.addons` for examples.
 """
 
-from ..session import Session
-from ..flow import Flow
-from ..node import Node
+from __future__ import annotations
 from ..base import Base
+from ..info_msgs import InfoMsgs
+from types import MappingProxyType
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..session import Session
+    from ..flow import Flow
+    from ..node import Node
 
 
 class AddOn(Base):
+    
     name = ''
     version = ''
 
+    @classmethod
+    def addon_name(cls):
+        return cls.name if cls.name else cls.__name__
+    
     def register(self, session: Session):
         """
         Called when the add-on is registered with a session.
@@ -53,6 +63,13 @@ class AddOn(Base):
         flow.node_created.sub(self.on_node_created, nice=-4)
         flow.node_added.sub(self.on_node_added, nice=-4)
         flow.node_removed.sub(self.on_node_removed, nice=-4)
+    
+    def disconnect_flow_events(self, flow: Flow):
+        """Disconnects flow events to the add-on"""
+        
+        flow.node_created.unsub(self.on_node_created)
+        flow.node_added.unsub(self.on_node_added)
+        flow.node_removed.unsub(self.on_node_removed)
 
     def on_flow_created(self, flow: Flow):
         """
