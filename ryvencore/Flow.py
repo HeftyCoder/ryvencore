@@ -88,17 +88,17 @@ Assumptions:
     * no non-terminating feedback loops with exec connections
 
 """
-from .Base import Base, Event
-from .data.Data import Data
-from .FlowExecutor import FlowExecutor, executor_from_flow_alg
-from .Node import Node, node_from_identifier
-from .NodePort import NodeOutput, NodeInput, check_valid_conn
-from .RC import FlowAlg, ConnValidType
+from .base import Base, Event
+from .data.base import Data
+from .flow_executor import FlowExecutor, executor_from_flow_alg
+from .node import Node, node_from_identifier
+from .port import NodeOutput, NodeInput, check_valid_conn
+from .rc import FlowAlg, ConnValidType
 from .utils import *
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .Session import Session
+    from .session import Session
 
 
 class Flow(Base):

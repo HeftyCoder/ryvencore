@@ -1,6 +1,6 @@
 """Defines abstract structure data types akin to collections.abc"""
 
-from ...Data import _BuiltInData
+from ...base import _BuiltInData
 from collections.abc import (
     Container,
     Hashable,
@@ -29,7 +29,7 @@ class _BaseStructureData(_BuiltInData):
     """Type from collections module that the payload must conform to"""
 
     @property
-    def payload(self) -> collection_type:
+    def payload(self):
         return self._payload
     
     @payload.setter

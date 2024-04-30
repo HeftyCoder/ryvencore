@@ -30,10 +30,10 @@ To define a custom add-on:
 See :code:`ryvencore.addons` for examples.
 """
 
-from .Session import Session
-from .Flow import Flow
-from .Node import Node
-from .Base import Base
+from ..session import Session
+from ..flow import Flow
+from ..node import Node
+from ..base import Base
 
 
 class AddOn(Base):

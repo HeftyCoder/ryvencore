@@ -1,9 +1,8 @@
-from typing import Optional, Union
 from packaging.version import parse as parse_version
 
-from ryvencore import Node, Data, AddOn, Flow
-from ryvencore.Base import Base, Event
-from ryvencore.utils import print_err
+from .. import Node, Data, AddOn, Flow
+from ..base import Event
+from ..utils import print_err
 
 
 ADDON_VERSION = '0.4'
@@ -194,7 +193,7 @@ class VarsAddon(AddOn):
 
         return name.isidentifier() and not self.var_exists(flow, name)
 
-    def create_var(self, flow: Flow, name: str, val=None, load_from=None) -> Optional[Variable]:
+    def create_var(self, flow: Flow, name: str, val=None, load_from=None) -> Variable | None:
         """
         Creates and returns a new variable and None if the name isn't valid.
         """
@@ -222,7 +221,7 @@ class VarsAddon(AddOn):
     def var_exists(self, flow, name: str) -> bool:
         return flow in self.flow_variables and name in self.flow_variables[flow]
 
-    def var(self, flow, name: str) -> Optional[Variable]:
+    def var(self, flow, name: str) -> Variable | None:
         """
         Returns the variable with the given name or None if it doesn't exist.
         """

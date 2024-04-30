@@ -1,6 +1,6 @@
 """Defines common data types based on python standard types"""
 
-from ..Data import Data, _BuiltInData
+from ..base import Data, _BuiltInData
 from typing import Iterable
 from .collections.abc import SequenceData
  

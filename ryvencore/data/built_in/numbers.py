@@ -1,6 +1,6 @@
 """Defines basic numeric data types"""
 
-from ..Data import _BuiltInData
+from ..base import _BuiltInData
 from numbers import Number, Complex, Real, Rational, Integral
 from fractions import Fraction
 

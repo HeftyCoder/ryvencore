@@ -5,7 +5,7 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .NodePort import NodeOutput, NodeInput
+    from .port import NodeOutput, NodeInput
 
 class FlowAlg(IntEnum):
     """Used for performance reasons"""

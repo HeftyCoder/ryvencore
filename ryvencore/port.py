@@ -1,13 +1,13 @@
 from typing import TYPE_CHECKING
 
-from .Base import Base
+from .base import Base
 from .utils import serialize, deserialize
 
-from .RC import PortObjPos, ConnValidType
+from .rc import PortObjPos, ConnValidType
 from .data import Data, check_valid_data
 from dataclasses import dataclass
 if TYPE_CHECKING:
-    from .Node import Node
+    from .node import Node
 
 @dataclass
 class PortConfig:

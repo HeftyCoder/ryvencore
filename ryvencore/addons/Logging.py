@@ -5,8 +5,8 @@ WIP
 from logging import Logger as PyLogger
 from typing import Optional
 
-from ryvencore.AddOn import AddOn
-from ryvencore.Base import Event
+from .base import AddOn
+from ..base import Event
 
 
 class Logger(PyLogger):

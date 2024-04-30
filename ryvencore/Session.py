@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING
 
 from .data import Data 
 from .data.built_in import get_built_in_data_types 
-from .Base import Base, Event
-from .Flow import Flow
-from .InfoMsgs import InfoMsgs
+from .base import Base, Event
+from .flow import Flow
+from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, load_from_file, print_err
-from .Node import Node
+from .node import Node
 from types import MappingProxyType
 
 if TYPE_CHECKING:
-    from AddOn import AddOn
+    from ryvencore.addons.base import AddOn
     
 class Session(Base):
     """

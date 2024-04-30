@@ -5,7 +5,7 @@ and deserialization must be implemented for each respective type. Types that are
 pickle serializable by default can be used directly with :code`Data(my_data)`.
 """
 
-from ..Base import Base
+from ..base import Base
 from ..utils import serialize, deserialize, print_err
 
 class Data(Base):

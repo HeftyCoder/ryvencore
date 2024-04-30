@@ -3,9 +3,9 @@ The flow executors are responsible for executing the flow. They have access to
 the flow as well as the nodes' internals and are able to perform optimizations.
 """
 from . import Flow, Node
-from .data.Data import Data
-from .NodePort import NodeOutput, NodeInput
-from .RC import FlowAlg
+from .data.base import Data
+from .port import NodeOutput, NodeInput
+from .rc import FlowAlg
 
 
 """

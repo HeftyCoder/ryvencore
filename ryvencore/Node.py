@@ -1,19 +1,19 @@
 import traceback
 from typing import TYPE_CHECKING
 
-from .Base import Base, Event
+from .base import Base, Event
 
-from .NodePort import default_config, PortConfig, NodeInput, NodeOutput
-from .data.Data import Data
-from .InfoMsgs import InfoMsgs
+from .port import default_config, PortConfig, NodeInput, NodeOutput
+from .data.base import Data
+from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
-from .RC import ProgressState
+from .rc import ProgressState
 
 from numbers import Real
 from copy import copy
 
 if TYPE_CHECKING:
-    from .Flow import Flow
+    from .flow import Flow
 
 class Node(Base):
     """
