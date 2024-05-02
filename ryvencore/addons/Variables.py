@@ -3,7 +3,7 @@ from packaging.version import parse as parse_version
 from .. import Node, Data, AddOn, Flow
 from ..base import Event
 from ..info_msgs import InfoMsgs
-
+from typing import Callable
 
 ADDON_VERSION = '0.4'
 # TODO: replace print_err with InfoMsgs
@@ -19,12 +19,16 @@ class Variable:
     def __init__(self, addon: VarsAddon, flow: Flow, name='', val=None, load_from=None, data_type: type[Data] = None):
         self.addon = addon
         self.flow = flow
-        self.name = name
+        self._name = name
         self.data = None
         
         self.data_type = data_type if data_type else Data
         self.set_data_type(self.data_type, val, load_from)
 
+    @property
+    def name(self):
+        return self._name
+    
     def get(self):
         """
         Returns the value of the variable
@@ -37,7 +41,7 @@ class Variable:
         """
         self.data.payload = val
         if not silent:
-            self.addon.update_subscribers(self.flow, self.name)
+            self.addon.update_subscribers(self.flow, self._name)
 
     def val_str(self):
         return str(self.data.payload)
@@ -58,10 +62,19 @@ class Variable:
             self.data = self.data_type(load_from=load_from)
         
         if not silent:
-            self.addon.update_subscribers(self.flow, self.name)
+            self.addon.update_subscribers(self.flow, self._name)
         
     def serialize(self):
         return self.data.data()
+
+
+class VarSubscriber:
+    """Simple class to handle subscriptions for a variable"""
+    
+    def __init__(self, var: Variable):
+        self.variable = var
+        self.subscriptions: list[tuple[Node, Callable[[Variable], None]]] = []
+        """The subscriptions are a callback that is a method on a node"""
 
 
 class VarsAddon(AddOn):
@@ -118,35 +131,72 @@ class VarsAddon(AddOn):
     def __init__(self):
         AddOn.__init__(self)
 
-        # layout:
-        #   {
-        #       Flow: {
-        #           'variable name': {
-        #               'var': Variable,
-        #               'subscriptions': [(node, method)]
-        #           },
-        #   }
-        self.flow_variables: dict[Flow, dict[str, dict]] = {}
-
+        # dict[Flow, dict[var_name, subscriber]]
+        self.flow_variables: dict[Flow, dict[str, VarSubscriber]] = {}
+        
         # nodes can be removed and re-added, so we need to keep track of the broken
         # subscriptions when nodes get removed, because they might get re-added
         # in which case we need to re-establish their subscriptions
-        # layout:
-        #   {
-        #       Node: {
-        #          'variable name': 'callback name'
-        #       }
-        #   }
-        self.removed_subscriptions = {}
+        # dict[Node, dict[variable_name, callback_name]]
+        self.removed_subscriptions: dict[Node, dict[str, str]] = {}
 
         # state data of variables that need to be recreated once their flow is
         # available, see :code:`on_flow_created()`
-        self.flow_vars__pending = {}
+        self.flow_vars__pending: dict[int, dict] = {}
 
         # events
-        self.var_created = Event(Flow, str, Variable)
-        self.var_deleted = Event(Flow, str)
-
+        self._var_created = Event(Variable)
+        self._var_deleted = Event(Variable)
+        self._var_renamed = Event(Variable, str)
+        self._var_type_changed = Event(Variable, Data)
+        self._var_data_loaded = Event(Variable)
+    
+    @property
+    def var_created(self):
+        """
+        Event emitted when a variable is created
+        
+        args: Variable
+        """
+        return self._var_created 
+    
+    @property
+    def var_deleted(self):
+        """
+        Event emitted when a variable is deleted
+        
+        args: Variable
+        """
+        return self._var_deleted
+    
+    @property
+    def var_type_changed(self):
+        """
+        Event emitted when a variable's data type is changed
+        
+        args: Variable, data_type: Data
+        """
+        
+        return self._var_type_changed
+        
+    @property
+    def var_renamed(self):
+        """
+        Event emitted when a variable's name is changed
+        
+        args: Variable, old_name: 
+        """
+        return self._var_renamed
+    
+    @property
+    def var_data_loaded(self):
+        """
+        Event emitted when a variable has changed due to data loading
+        
+        args: Variable
+        """
+        return self._var_data_loaded
+    
     """
     flow management
     """
@@ -198,8 +248,8 @@ class VarsAddon(AddOn):
         # because the node might get re-added later
         self.removed_subscriptions[node] = {}
 
-        for name, varname in self.flow_variables[node.flow].items():
-            for (n, cb) in varname['subscriptions']:
+        for name, v_sub in self.flow_variables[node.flow].items():
+            for (n, cb) in v_sub.subscriptions:
                 if n == node:
                     self.removed_subscriptions[node][name] = cb.__name__
                     self.unsubscribe(node, name, cb)
@@ -215,31 +265,72 @@ class VarsAddon(AddOn):
 
         return name.isidentifier() and not self.var_exists(flow, name)
 
+    def rename_var(self, flow: Flow, old_name: str, new_name: str) -> bool:
+        """Renames the variable if it exists"""
+        
+        if not self.var_exists(flow, old_name) or new_name.isidentifier():
+            return False
+        
+        v_sub = self.flow_variables[flow][old_name]
+        del self.flow_variables[flow][old_name]
+        
+        v_sub.variable._name = new_name
+        self.flow_variables[flow][new_name] = v_sub
+        
+        self._var_renamed.emit(v_sub.variable, old_name, new_name)
+        return True
+      
     def create_var(self, flow: Flow, name: str, val=None, load_from=None) -> Variable | None:
         """
         Creates and returns a new variable and None if the name isn't valid.
         """
 
-        if self.var_name_valid(flow, name):
-            v = Variable(self, flow, name, val, load_from)
-            self.flow_variables[flow][name] = {
-                'var': v,
-                'subscriptions': []
-            }
-            self.var_created.emit(flow, name, v)
-            return v
+        if not self.var_name_valid(flow, name):
+            return None
+        
+        v = Variable(self, flow, name, val, load_from)
+        v_sub = VarSubscriber(v)
+        
+        self.flow_variables[flow][name] = v_sub
+        self._var_created.emit(v)
+        return v
 
-    def delete_var(self, flow, name: str):
+    def delete_var(self, flow: Flow, name: str):
         """
         Deletes a variable and causes subscription update. Subscriptions are preserved.
         """
         if not self.var_exists(flow, name):
             # print_err(f'Variable {name} does not exist.')
-            return
+            return False
 
+        v = self.flow_variables[flow][name]
         del self.flow_variables[flow][name]
-        self.var_deleted.emit(flow, name)
+        self._var_deleted.emit(v)
+        return True
 
+    def change_var_type(self, flow: Flow, name: str, d_type: type[Data], value=None, data: dict = None):
+        """Changes a variables data type"""
+        
+        if not self.var_exists(flow, name):
+            return False
+        
+        v = self.var(flow, name)
+        if v.data_type == d_type:
+            return False
+        
+        v.set_data_type(d_type, value, data)
+        self._var_type_changed.emit(v, d_type)
+    
+    def set_var_from_data(self, flow: Flow, name: str, data: dict):
+        """Loads a variable's value with serialized data"""
+        
+        if not self.var_exists(flow, name):
+            return False
+        
+        v = self.var(flow, name)
+        v.data.load(data)
+        self._var_data_loaded.emit(v)
+        
     def var_exists(self, flow, name: str) -> bool:
         return flow in self.flow_variables and name in self.flow_variables[flow]
 
@@ -251,16 +342,17 @@ class VarsAddon(AddOn):
             # print_err(f'Variable {name} does not exist.')
             return None
 
-        return self.flow_variables[flow][name]['var']
+        return self.flow_variables[flow][name].variable
 
     def update_subscribers(self, flow, name: str):
         """
         Called when a Variable object changes or when the var is created or deleted.
         """
 
-        v = self.flow_variables[flow][name]['var']
-
-        for (node, cb) in self.flow_variables[flow][name]['subscriptions']:
+        v_sub = self.flow_variables[flow][name]
+        v = v_sub.variable
+        
+        for (node, cb) in v_sub.subscriptions:
             cb(v)
 
     def subscribe(self, node: Node, name: str, callback):
@@ -271,7 +363,7 @@ class VarsAddon(AddOn):
             # print_err(f'Variable {name} does not exist.')
             return
 
-        self.flow_variables[node.flow][name]['subscriptions'].append((node, callback))
+        self.flow_variables[node.flow][name].subscriptions.append((node, callback))
 
     def unsubscribe(self, node: Node, name: str, callback):
         """
@@ -281,7 +373,7 @@ class VarsAddon(AddOn):
             # print_err(f'Variable {name} does not exist.')
             return
 
-        self.flow_variables[node.flow][name]['subscriptions'].remove((node, callback))
+        self.flow_variables[node.flow][name].subscriptions.remove((node, callback))
 
     """
     serialization
@@ -298,8 +390,8 @@ class VarsAddon(AddOn):
         data['Variables'] = {
             'subscriptions': {
                 name: cb.__name__
-                for name, var in self.flow_variables[node.flow].items()
-                for (n, cb) in var['subscriptions']
+                for name, v_sub in self.flow_variables[node.flow].items()
+                for (n, cb) in v_sub.subscriptions
                 if node == n
             }
         }
@@ -309,8 +401,8 @@ class VarsAddon(AddOn):
         
         return {
             f.global_id: {
-                name: var['var'].serialize()
-                for name, var in self.flow_variables[f].items()
+                name: v_sub.variable.serialize()
+                for name, v_sub in self.flow_variables[f].items()
             }
             for f in self.flow_variables.keys()
         }
