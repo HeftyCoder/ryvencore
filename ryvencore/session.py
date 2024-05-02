@@ -43,6 +43,8 @@ class Session(Base):
         self._flows: dict[str, Flow] = {}
         self._flows_proxy = MappingProxyType(self._flows)
         
+        self._inst_data_types: dict[str, type[Data]] = {} # which data types can be instantiated
+        self._inst_data_types_proxy = MappingProxyType(self._inst_data_types)
         self._data_types: dict[str, type[Data]] = {}
         self._data_types_proxy = MappingProxyType(self._data_types)
         
@@ -60,7 +62,7 @@ class Session(Base):
             from .addons.builtin import built_in_addons
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
-                
+    
     @property
     def addons(self):
         return self._addons_proxy
@@ -72,6 +74,11 @@ class Session(Base):
     @property
     def data_types(self):
         return self._data_types_proxy
+    
+    @property
+    def inst_data_types(self):
+        """Returns a readonly dictionay (proxy) for which data types can be instantiated"""
+        return self._inst_data_types_proxy
     
     # TODO: Think of an importing solution for outside addons
     # def load_addons(self, location: str | None = None):
@@ -189,6 +196,8 @@ class Session(Base):
             return
 
         self._data_types[id] = data_type_class
+        if data_type_class.instantiable():
+            self._inst_data_types[id] = data_type_class
 
 
     def register_data_types(self, data_type_classes: list[type[Data]]):
@@ -198,7 +207,6 @@ class Session(Base):
         """
 
         for d in data_type_classes:
-            print(d)
             self.register_data_type(d)
 
     

@@ -1,6 +1,8 @@
 """Defines abstract structure data types akin to collections.abc"""
 
 from ...base import _BuiltInData
+from ....utils import has_abstractmethods
+
 from collections.abc import (
     Container,
     Hashable,
@@ -28,17 +30,20 @@ class _BaseStructureData(_BuiltInData):
     collection_type = None
     """Type from collections module that the payload must conform to"""
     
+    @classmethod
+    def instantiable(cls):
+        return cls.collection_type and not has_abstractmethods(cls.collection_type)
+    
+    @classmethod
+    def _build_identifier(cls):
+        cls.identifier = f'built_in.collections.{cls.__name__}'
+        
+    @classmethod
+    def is_valid_payload(cls, payload):
+        return isinstance(payload, cls.collection_type)
+    
     def __init__(self, value=None, load_from=None):
         super().__init__(value, load_from)
-
-    @property
-    def payload(self):
-        return self._payload
-    
-    @payload.setter
-    def payload(self, value):
-        assert isinstance(value, self.collection_type), f'Payload of type {value.__class__} is not of (sub)type {self.collection_type.__class__}'
-        self._payload = value
         
 class ContainerData(_BaseStructureData):
     collection_type = Container

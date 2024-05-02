@@ -118,5 +118,3 @@ class LoggingAddon(AddOn):
         data['Logging'] = {
             'loggers': [name for name in self.loggers[node].keys()]
         }
-
-addon = LoggingAddon()

@@ -79,17 +79,40 @@ class Data(Base):
     [1, 2, 3, 4]
     """
     
-    # will be 'Data' by default, see :code:`_build_identifier()`
     identifier: str = None
     """unique Data identifier; you can set this manually in subclasses, if
     you don't the class name will be used"""
 
-    legacy_identifiers = []
+    legacy_identifiers: list[str] = []
     """a list of compatible identifiers in case you change the identifier"""
+    
+    @classmethod
+    def instantiable(cls):
+        """
+        *VIRTUAL
+        
+        This method returns whether the Data type can be instantiated.
+        Some data types are meant to work only as identifiers for type
+        checking (e.g. the classes in collections.abc)
+        
+        This can be useful for e.g. the Variables addon.
+        
+        The default for the base Data is True
+        """
+        return True
     
     @classmethod
     def _build_identifier(cls):
         cls.identifier = cls.__name__
+    
+    @classmethod
+    def is_valid_payload(cls, payload):
+        """
+        *VIRTUAL
+        
+        Returns if the given payload can be accepted.
+        """
+        return True
     
     def __init__(self, value=None, load_from=None):
         super().__init__()
@@ -108,30 +131,43 @@ class Data(Base):
 
     @payload.setter
     def payload(self, value):
+        if not self.is_valid_payload(value):
+            raise TypeError(f'Type of {type(value)} cannot be accepted by {self.__class__}')
         self._payload = value
 
     def get_data(self):
         """
         *VIRTUAL*
 
-        Transform the data object to a :code:`pickle` serializable object.
+        Transform the data object to any serializable representation.
+        The simple approach taken for the base Data class is to serialize into a :code:`pickle` serializable object.
+        Preferably, a JSON compatible form should be returned.
+        
+        Override this to change how data is serialized.
         **Do not** use this function to access the payload, use :code:`payload` instead.
         """
-        return self.payload     # naive default implementation
+        
+        # naive default implementation
+        return serialize(self.payload)     
 
     def set_data(self, data):
         """
         *VIRTUAL*
 
-        Deserialize the data object from the dict created in :code:`get_data()`.
+        Deserialize the data object from the serialized data created in :code:`get_data()`.
+        
+        The naive implementation of the base Data class is to serialize into a :code:`pickle` serializable object.
+        Preferably, data should simply be in a JSON compatible form.
+        
+        Override this to change how data is de-serialized.
         """
-        self.payload = data     # naive default implementation
+        self.payload = deserialize(data)     # naive default implementation
 
     def data(self) -> dict:
         return {
             **super().data(),
             'identifier': self.identifier,
-            'serialized': serialize(self.get_data())
+            'serialized': self.get_data()
         }
 
     def load(self, data: dict):
@@ -145,7 +181,7 @@ class Data(Base):
                       f'Did you forget to add it to legacy_identifiers?')
             return
 
-        self.set_data(deserialize(data['serialized']))
+        self.set_data(data['serialized'])
 
 # build identifier for Data
 Data._build_identifier()

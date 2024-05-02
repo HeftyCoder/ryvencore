@@ -16,30 +16,52 @@ class Variable:
     Storing other data will break save&load.
     """
 
-    def __init__(self, addon: VarsAddon, flow: Flow, name='', val=None, data=None):
+    def __init__(self, addon: VarsAddon, flow: Flow, name='', val=None, load_from=None, data_type: type[Data] = None):
         self.addon = addon
         self.flow = flow
         self.name = name
-        self.data: Data = Data(value=val, load_from=data)
+        self.data = None
+        
+        self.data_type = data_type if data_type else Data
+        self.set_data_type(self.data_type, val, load_from)
 
     def get(self):
         """
         Returns the value of the variable
         """
         return self.data.payload
-
+    
     def set(self, val, silent=False):
         """
         Sets the value of the variable
         """
-        self.data = Data(val)
+        self.data.payload = val
         if not silent:
             self.addon.update_subscribers(self.flow, self.name)
 
+    def val_str(self):
+        return str(self.data.payload)
+    
+    def set_data_type(self, data_type: type[Data], value=None, load_from=None, silent=False):
+        """
+        Sets the datatype for this variable
+        
+        The value will be defaulted if it doesn't conform to the payload type of the data type.
+        """
+        if not issubclass(data_type, Data):
+            raise ValueError(f'{data_type} is not of type {Data}')
+        
+        self.data_type = data_type
+        if self.data_type.is_valid_payload(value):
+            self.data = self.data_type(value=value, load_from=load_from)
+        else:
+            self.data = self.data_type(load_from=load_from)
+        
+        if not silent:
+            self.addon.update_subscribers(self.flow, self.name)
+        
     def serialize(self):
         return self.data.data()
-
-
 
 
 class VarsAddon(AddOn):
@@ -104,7 +126,7 @@ class VarsAddon(AddOn):
         #               'subscriptions': [(node, method)]
         #           },
         #   }
-        self.flow_variables = {}
+        self.flow_variables: dict[Flow, dict[str, dict]] = {}
 
         # nodes can be removed and re-added, so we need to keep track of the broken
         # subscriptions when nodes get removed, because they might get re-added
@@ -251,7 +273,7 @@ class VarsAddon(AddOn):
 
         self.flow_variables[node.flow][name]['subscriptions'].append((node, callback))
 
-    def unsubscribe(self, node, name: str, callback):
+    def unsubscribe(self, node: Node, name: str, callback):
         """
         Unsubscribe from a variable.
         """
@@ -309,5 +331,3 @@ class VarsAddon(AddOn):
 
         self.flow_vars__pending = state
 
-
-addon = VarsAddon()

@@ -66,6 +66,10 @@ def get_mod_classes(mod: str | ModuleType, to_fill: list | None = None, filter: 
 
     return classes
 
+def has_abstractmethods(cls):
+    """Returns whether an object has abstract methods"""
+    return hasattr(cls, '__abstractmethods__') and len(getattr(cls, '__abstractmethods__')) != 0
+
 
 
     
