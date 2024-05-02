@@ -23,7 +23,7 @@ class Variable:
         self.data = None
         
         self.data_type = data_type if data_type else Data
-        self.set_data_type(self.data_type, val, load_from)
+        self.set_data_type(self.data_type, val, load_from, True)
 
     @property
     def name(self):
@@ -268,7 +268,7 @@ class VarsAddon(AddOn):
     def rename_var(self, flow: Flow, old_name: str, new_name: str) -> bool:
         """Renames the variable if it exists"""
         
-        if not self.var_exists(flow, old_name) or new_name.isidentifier():
+        if not self.var_exists(flow, old_name) or not new_name.isidentifier():
             return False
         
         v_sub = self.flow_variables[flow][old_name]
@@ -277,7 +277,7 @@ class VarsAddon(AddOn):
         v_sub.variable._name = new_name
         self.flow_variables[flow][new_name] = v_sub
         
-        self._var_renamed.emit(v_sub.variable, old_name, new_name)
+        self._var_renamed.emit(v_sub.variable, old_name)
         return True
       
     def create_var(self, flow: Flow, name: str, val=None, load_from=None) -> Variable | None:
@@ -303,9 +303,9 @@ class VarsAddon(AddOn):
             # print_err(f'Variable {name} does not exist.')
             return False
 
-        v = self.flow_variables[flow][name]
+        v_sub = self.flow_variables[flow][name]
         del self.flow_variables[flow][name]
-        self._var_deleted.emit(v)
+        self._var_deleted.emit(v_sub.variable)
         return True
 
     def change_var_type(self, flow: Flow, name: str, d_type: type[Data], value=None, data: dict = None):
