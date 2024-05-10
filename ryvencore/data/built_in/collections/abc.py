@@ -27,16 +27,14 @@ from collections.abc import (
 class _BaseStructureData(_BuiltInData):
     """Base class for any collection"""
     
+    id_prefix = f'{_BuiltInData.id_prefix}.collections'
+    
     collection_type = None
     """Type from collections module that the payload must conform to"""
     
     @classmethod
     def instantiable(cls):
         return cls.collection_type and not has_abstractmethods(cls.collection_type)
-    
-    @classmethod
-    def _build_identifier(cls):
-        cls.identifier = f'built_in.collections.{cls.__name__}'
         
     @classmethod
     def is_valid_payload(cls, payload):
@@ -63,7 +61,7 @@ class ReversibleData(IterableData):
 class GeneratorData(IteratorData):
     collection_type = Generator
 
-class SizedData(_BuiltInData):
+class SizedData(_BaseStructureData):
     collection_type = Sized
 
 class CollectionData(SizedData, IterableData, ContainerData):

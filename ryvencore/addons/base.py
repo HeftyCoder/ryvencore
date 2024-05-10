@@ -41,12 +41,12 @@ if TYPE_CHECKING:
 
 class AddOn(Base):
     
-    name = ''
+    _name = ''
     version = ''
 
     @classmethod
     def addon_name(cls):
-        return cls.name if cls.name else cls.__name__
+        return cls._name if cls._name else cls.__name__
     
     def register(self, session: Session):
         """

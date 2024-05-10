@@ -1,6 +1,6 @@
 from .data import Data 
 from .data.built_in import get_built_in_data_types 
-from .base import Base, Event
+from .base import Base, Event, IdentifiableGroups
 from .flow import Flow
 from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
@@ -9,6 +9,7 @@ from .addons.base import AddOn
 
 from importlib import import_module
 from types import MappingProxyType
+from collections.abc import Set, Mapping, Iterable
 
 
 class Session(Base):
@@ -54,6 +55,11 @@ class Session(Base):
         self.gui: bool = gui
         self.init_data = None
 
+        # groups
+        self._node_groups = IdentifiableGroups[type[Node]](self.nodes)
+        self._data_groups = IdentifiableGroups[type[Data]](self.data_types)
+        self._inst_data_groups = IdentifiableGroups[type[Data]](self._inst_data_types)
+        
         # Register Built-In Data Types
         self.register_data_types(get_built_in_data_types())
         
@@ -62,6 +68,8 @@ class Session(Base):
             from .addons.builtin import built_in_addons
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
+        
+        
     
     @property
     def addons(self):
@@ -80,7 +88,22 @@ class Session(Base):
         """Returns a readonly dictionay (proxy) for which data types can be instantiated"""
         return self._inst_data_types_proxy
     
-    # TODO: Think of an importing solution for outside addons
+    @property
+    def node_groups(self):
+        """Node types groupped by their id prefix. If it doesn't exist, the key is global"""
+        return self._node_groups
+    
+    @property
+    def data_groups(self):
+        """Data types groupped by their id prefix. If it doesn't exist, the key is global"""
+        return self._data_groups
+
+    @property
+    def inst_data_groups(self):
+        """Data types that can be instantiated groupped by their id prefix."""
+        return self._inst_data_groups
+    
+    # TODO: Think of an importing solution for external addons
     # def load_addons(self, location: str | None = None):
     #     """Loads all addons found in every module inside the given directory"""
         
@@ -143,7 +166,7 @@ class Session(Base):
                 
             del self._addons[addon_name]
 
-    def register_node_types(self, node_types: list[type[Node]]):
+    def register_node_types(self, node_types: Iterable[type[Node]]):
         """
         Registers a list of Nodes which then become available in the flows.
         Do not attempt to place nodes in flows that haven't been registered in the session before.
@@ -158,9 +181,10 @@ class Session(Base):
         Registers a single node.
         """
 
-        node_class._build_identifier()
+        node_class._build_id()
         self.nodes.add(node_class)
-
+        self._node_groups.add(node_class)
+            
 
     def unregister_node(self, node_class: type[Node]):
         """
@@ -169,8 +193,9 @@ class Session(Base):
         """
 
         self.nodes.remove(node_class)
-
-
+        self._node_groups.remove(node_class)
+     
+                
     def all_node_objects(self) -> list[Node]:
         """
         Returns a list of all node objects instantiated in any flow.
@@ -185,22 +210,27 @@ class Session(Base):
         in the flows.
         """
 
-        data_type_class._build_identifier()
+        data_type_class._build_id()
         
-        id = data_type_class.identifier
+        id = data_type_class.id()
         if id == 'Data' or id in self._data_types:
             print_err(
                 f'Data type identifier "{id}" is already registered. '
-                f'skipping. You can use the "identifier" attribute of '
+                f'skipping. You can use the "id" function of '
                 f'your Data subclass.')
             return
 
         self._data_types[id] = data_type_class
+        self._data_groups.add(data_type_class)
+        
         if data_type_class.instantiable():
             self._inst_data_types[id] = data_type_class
+            self._inst_data_groups.add(data_type_class)
+        
+        # group data types
+        
 
-
-    def register_data_types(self, data_type_classes: list[type[Data]]):
+    def register_data_types(self, data_type_classes: Iterable[type[Data]]):
         """
         Registers a list of :code:`Data` subclasses which will then be available
         in the flows.
@@ -360,3 +390,4 @@ class Session(Base):
                 name: addon.data() for name, addon in self._addons.items()
             }
         }
+        

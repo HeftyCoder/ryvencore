@@ -88,10 +88,10 @@ Assumptions:
     * no non-terminating feedback loops with exec connections
 
 """
-from .base import Base, Event
+from .base import Base, Event, find_identifiable
 from .data.base import Data
 from .flow_executor import FlowExecutor, executor_from_flow_alg
-from .node import Node, node_from_identifier
+from .node import Node
 from .port import NodeOutput, NodeInput, check_valid_conn
 from .rc import FlowAlg, ConnValidType
 from .utils import *
@@ -185,7 +185,7 @@ class Flow(Base):
         for n_c in nodes_data:
 
             # find class
-            node_class = node_from_identifier(
+            node_class = find_identifiable(
                 n_c['identifier'],
                 self.session.nodes.union(self.session.invisible_nodes)
             )

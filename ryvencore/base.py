@@ -3,7 +3,12 @@ This module defines the :code:`Base` class for most internal components,
 implementing features such as a unique ID, a system for save and load,
 and a very minimal event system.
 """
+
 from bisect import insort
+from collections.abc import Iterable, Set, Mapping
+from typing import Generic, TypeVar
+from types import MappingProxyType
+
 
 class IDCtr:
     """
@@ -33,7 +38,8 @@ class Event:
     Implements a generalization of the observer pattern, with additional
     priority support. The lower the value, the earlier the callback
     is called. The default priority is 0.
-    ryvencore itself may use negative priorities internally to ensure
+    
+    Negative priorities internally to ensure
     precedence of internal observers over all user-defined ones.
     """
 
@@ -199,3 +205,133 @@ class Base:
             self.prev_global_id = data['GID']
             self._prev_id_objs[self.prev_global_id] = self
             self.prev_version = data.get('version')
+
+
+class Identifiable:
+    """A class that can be identified by a unique string"""
+    
+    id_prefix: str = None
+    """becomes the first part of the identifier if set; can be useful for grouping nodes"""
+    
+    id_name: str = None
+    """becomes the last part of the identifier if set; otherwise the class name is used"""
+    
+    _id: str = None
+    """unique node identifier string which is set by _build_identifier"""
+    
+    legacy_ids: list[str] = []
+    """a list of compatible identifiers, useful when you change the class name (and hence the identifier) to provide 
+    backward compatibility to load old projects that rely on the old identifier"""
+    
+    @classmethod
+    def id(cls):
+        """Returns the id of this identifiable. Useful only after _build_identifier is called."""
+        return cls._id
+
+    @classmethod
+    def name(cls):
+        """Returns the name of this identifiable. It is either the id_name or the __name__"""
+        return cls.id_name if cls.id_name else cls.__name__
+    
+    @classmethod
+    def _build_id(cls):
+        """
+        Sets the __id to be <identifier_prefix>.<name> depending on if they are set.
+        If the name is not set the class name is used.
+        
+        This must result in a unique string
+        """
+
+        prefix = f'{cls.id_prefix}.' if cls.id_prefix else ''
+        cls._id = f'{prefix}{cls.name()}'
+        
+        # notice we do not touch the legacy_identifiers
+
+
+IdType = TypeVar('IdType', bound=Identifiable)        
+
+def find_identifiable(id: str, to_search: Iterable[IdType]):
+
+    for nc in to_search:
+        if nc.id() == id:
+            return nc
+    else:  # couldn't find a identifiable with this identifier => search in legacy_ids
+        for nc in to_search:
+            if id in nc.legacy_ids:
+                return nc
+        else:
+            raise Exception(
+                f'could not find node class with id: \'{id}\'. '
+                f'if you changed your node\'s class name, make sure to add the old '
+                f'identifier to the legacy_ids list attribute to provide '
+                f'backwards compatibility.'
+            )
+            
+     
+class IdentifiableGroups(Generic[IdType]):
+    """
+    Groups identifiables by their id prefix and id name
+    
+    Identifiables with no prefix are groupped under 'global'
+    """
+    
+    def __init__(self, ids: Iterable[IdType] = []):
+        
+        self.__id_groups: dict[str, dict[str, Identifiable]] = {
+            'global': {}
+        }
+        self._groups_proxy = MappingProxyType(self.__id_groups)
+        
+        for item in ids:
+            if not item.id_prefix:
+                group = self.__id_groups['global']
+            else:
+                if not item.id_prefix in self.__id_groups:
+                    self.__id_groups[item.id_prefix] = group = {}
+                else:
+                    group = self.__id_groups[item.id_prefix]
+        
+            group[item.name()] = item
+    
+    
+    def __str__(self) -> str:
+        return self.__id_groups.__str__()
+    
+    
+    @property
+    def groups(self):
+        return self._groups_proxy
+    
+    
+    def add(self, id: IdType):
+        """Adds an identifiable to its group. Creates the group if it doesn't exist"""
+        
+        if not id.id_prefix:
+            group = self.__id_groups['global']
+        elif id.id_prefix in self.__id_groups:
+            group = self.__id_groups[id.id_prefix]
+        else:
+            self.__id_groups[id.id_prefix] = group = {}
+        
+        group[id.name()] = id
+    
+    
+    def remove(self, id: IdType):
+        """Removes an identifiable from its group. Deletes the group if it's empty"""
+        
+        if not id.id_prefix:
+            del self.__id_groups['global'][id.name()]
+        else:
+            del self.__id_groups[id.id_prefix][id.name()]
+            if not self.__id_groups[id.id_prefix]:
+                del self.__id_groups[id.id_prefix]
+    
+    def get_group(self, group_id: str) -> None | Mapping[str, IdType]:
+        """Retrieves a group. Returns none if it doesn't exist"""
+        
+        if not group_id in self.__id_groups:
+            return None
+        return MappingProxyType(self.__id_groups[group_id])
+
+    
+    

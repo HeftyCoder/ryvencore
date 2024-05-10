@@ -10,7 +10,7 @@ class NodeBase(rc.Node):
 class Node1(NodeBase):
     title = 'node 1'
     init_inputs = []
-    init_outputs = [rc.NodeOutputType(type_='data'), rc.NodeOutputType(type_='data')]
+    init_outputs = [rc.PortConfig(type_='data'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
         self.set_output_val(0, rc.Data('Hello, World!'))

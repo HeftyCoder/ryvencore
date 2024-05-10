@@ -1,7 +1,8 @@
+from __future__ import annotations
 import traceback
 from typing import TYPE_CHECKING
 
-from .base import Base, Event
+from .base import Base, Identifiable, Event
 
 from .port import default_config, PortConfig, NodeInput, NodeOutput
 from .data.base import Data
@@ -15,7 +16,7 @@ from copy import copy
 if TYPE_CHECKING:
     from .flow import Flow
 
-class Node(Base):
+class Node(Base, Identifiable):
     """
     Base class for all node blueprints. Such a blueprint is made by subclassing this class and registering that subclass
     in the session. Actual node objects are instances of it. The node's static properties are static attributes.
@@ -36,40 +37,28 @@ class Node(Base):
 
     init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
+    
+    
+    @classmethod
+    def _build_id(cls):
+        """
+        Sets the __id to be <identifier_prefix>.<name> depending on if they are set.
+        If the name is not set the class name is used.
+        
+        This must result in a unique string
+        """
 
-    identifier: str = None
-    """unique node identifier string. if not given it will set it to the class name when registering in the session"""
+        prefix = f'{cls.id_prefix}.' if cls.id_prefix else ''
+        name = cls.id_name if cls.id_name else cls.__name__
+        cls.__id = f'{prefix}{name}'
 
-    legacy_identifiers: list[str] = []
-    """a list of compatible identifiers, useful when you change the class name (and hence the identifier) to provide 
-    backward compatibility to load old projects that rely on the old identifier"""
-
-    identifier_prefix: str = None
-    """becomes part of the identifier if set; can be useful for grouping nodes"""
+        # notice that we do not touch the legacy identifier fields
 
     #
     # INITIALIZATION
     #
-
-    @classmethod
-    def _build_identifier(cls):
-        """
-        Sets the identifier to the class name and prepends f"{identifier_prefix}." if
-        the identifier prefix is set.
-        """
-
-        prefix = ''
-        if cls.identifier_prefix is not None:
-            prefix = cls.identifier_prefix + '.'
-
-        if cls.identifier is None:
-            cls.identifier = cls.__name__
-
-        cls.identifier = prefix + cls.identifier
-
-        # notice that we do not touch the legacy identifier fields
-
-    def __init__(self, flow: 'Flow'):
+    
+    def __init__(self, flow: Flow):
         Base.__init__(self)
 
         self.flow = flow
@@ -514,7 +503,7 @@ class Node(Base):
         d = {
             **super().data(),
 
-            'identifier': self.identifier,
+            'identifier': self.id(),
             'version': self.version,    # this overrides the version field from Base
 
             'state data': serialize(self.get_state()),
@@ -532,19 +521,19 @@ class Node(Base):
         return d
     
     
-def node_from_identifier(identifier: str, nodes: list[Node]):
+def node_from_identifier(id: str, nodes: list[Node]):
 
     for nc in nodes:
-        if nc.identifier == identifier:
+        if nc.id() == id:
             return nc
-    else:  # couldn't find a node with this identifier => search for identifier_comp
+    else:  # couldn't find a node with this identifier => search in legacy_ids
         for nc in nodes:
-            if identifier in nc.legacy_identifiers:
+            if id in nc.legacy_ids:
                 return nc
         else:
             raise Exception(
-                f'could not find node class with identifier \'{identifier}\'. '
+                f'could not find node class with id: \'{id}\'. '
                 f'if you changed your node\'s class name, make sure to add the old '
-                f'identifier to the identifier_comp list attribute to provide '
+                f'identifier to the legacy_ids list attribute to provide '
                 f'backwards compatibility.'
             )

@@ -1,9 +1,6 @@
 import json
 import unittest
 import ryvencore as rc
-from utils import check_addon_available
-
-check_addon_available('Variables', __file__)
 
 from ryvencore.addons.variables import VarsAddon
 
@@ -13,7 +10,7 @@ class NodeBase(rc.Node):
     def __init__(self, params):
         super().__init__(params)
 
-        self.Vars: VarsAddon = self.get_addon('Variables')
+        self.Vars: VarsAddon = self.get_addon(VarsAddon.addon_name())
 
     def create_var1(self):
         if not self.Vars.var_exists(self.flow, 'var1'):
@@ -24,8 +21,8 @@ class Node1(NodeBase):
     title = 'node 1'
     init_inputs = []
     init_outputs = [
-        rc.NodeOutputType(),
-        rc.NodeOutputType()
+        rc.PortConfig(),
+        rc.PortConfig()
     ]
 
     def __init__(self, params):

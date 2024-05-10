@@ -44,7 +44,7 @@ class LoggingAddon(AddOn):
     Refer to Python's logging module documentation.
     """
 
-    name = 'Logging'
+    _name = 'Logging'
     version = '0.0.1'
 
     def __init__(self):

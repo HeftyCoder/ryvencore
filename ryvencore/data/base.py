@@ -5,10 +5,10 @@ and deserialization must be implemented for each respective type. Types that are
 pickle serializable by default can be used directly with :code`Data(my_data)`.
 """
 
-from ..base import Base
+from ..base import Base, Identifiable
 from ..utils import serialize, deserialize, print_err
 
-class Data(Base):
+class Data(Base, Identifiable):
     """
     Base class for data objects.
 
@@ -79,13 +79,6 @@ class Data(Base):
     [1, 2, 3, 4]
     """
     
-    identifier: str = None
-    """unique Data identifier; you can set this manually in subclasses, if
-    you don't the class name will be used"""
-
-    legacy_identifiers: list[str] = []
-    """a list of compatible identifiers in case you change the identifier"""
-    
     @classmethod
     def instantiable(cls):
         """
@@ -99,11 +92,7 @@ class Data(Base):
         
         The default for the base Data is True
         """
-        return True
-    
-    @classmethod
-    def _build_identifier(cls):
-        cls.identifier = cls.__name__
+        return False
     
     @classmethod
     def is_valid_payload(cls, payload):
@@ -147,7 +136,6 @@ class Data(Base):
         **Do not** use this function to access the payload, use :code:`payload` instead.
         """
         
-        # naive default implementation
         return serialize(self.payload)     
 
     def set_data(self, data):
@@ -157,44 +145,45 @@ class Data(Base):
         Deserialize the data object from the serialized data created in :code:`get_data()`.
         
         The naive implementation of the base Data class is to serialize into a :code:`pickle` serializable object.
-        Preferably, data should simply be in a JSON compatible form.
+        Preferably, data should be in a JSON compatible form.
         
         Override this to change how data is de-serialized.
         """
-        self.payload = deserialize(data)     # naive default implementation
+        self.payload = deserialize(data)
 
     def data(self) -> dict:
         return {
             **super().data(),
-            'identifier': self.identifier,
+            'identifier': self.id(),
             'serialized': self.get_data()
         }
 
     def load(self, data: dict):
         super().load(data)
 
-        if data['identifier'] != self.identifier and \
-                data['identifier'] not in self.legacy_identifiers:
+        if data['identifier'] != self.id() and data['identifier'] not in self.legacy_ids:
             # this should not happen when loading a Flow, because the flow checks
             print_err(f'WARNING: Data identifier {data["identifier"]} '
-                      f'is not compatible with {self.identifier}. Skipping.'
+                      f'is not compatible with {self.id()}. Skipping.'
                       f'Did you forget to add it to legacy_identifiers?')
             return
 
         self.set_data(data['serialized'])
 
 # build identifier for Data
-Data._build_identifier()
+Data._build_id()
 
 
 class _BuiltInData(Data):
     """Identifier type for built-in data types"""
     
+    id_prefix = 'built_in'
+    
     @classmethod
-    def _build_identifier(cls):
-        cls.identifier = f'built_in.{cls.__name__}'
+    def instantiable(cls):
+        return False
 
-_BuiltInData._build_identifier()
+_BuiltInData._build_id()
 
 
 def check_valid_data(out_data_type: type[Data], inp_data_type: type[Data]) -> bool:

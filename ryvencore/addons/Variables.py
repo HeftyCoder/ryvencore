@@ -125,7 +125,7 @@ class VarsAddon(AddOn):
     42
     """
 
-    name = 'Variables'
+    _name = 'Variables'
     version = ADDON_VERSION
 
     def __init__(self):

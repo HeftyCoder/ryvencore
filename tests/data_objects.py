@@ -8,7 +8,7 @@ from ryvencore.data import Data, check_valid_data
 class DataTypesBasic(unittest.TestCase):
 
     class Producer(rc.Node):
-        init_outputs = [rc.NodeOutputType()]
+        init_outputs = [rc.PortConfig()]
 
         def update_event(self, inp=-1):
             self.set_output_val(0, rc.Data(42))
@@ -123,7 +123,7 @@ class DataTypesBuiltIn(unittest.TestCase):
         self.assertTrue(check_valid_data(IntegerData, ComplexData))
         
         s = rc.Session()
-        self.assertTrue(s.get_data_type(ListData.identifier) is not None)
+        self.assertTrue(s.get_data_type(ListData.id()) is not None)
         
         s.register_node_types([DataTypesBuiltIn.Producer, DataTypesBuiltIn.Consumer])
         f = s.create_flow('flow')

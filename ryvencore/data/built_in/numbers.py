@@ -8,6 +8,8 @@ from ...utils import has_abstractmethods
 class NumberData(_BuiltInData):
     """Base data class for numbers"""
     
+    id_prefix = f'{_BuiltInData.id_prefix}.numbers'
+    
     number_type = Number
     """Type from numbers module that the payload must conform to"""
     
@@ -21,10 +23,6 @@ class NumberData(_BuiltInData):
             issubclass(cls.fallback_type, cls.number_type) and
             not has_abstractmethods(cls.fallback_type)
         )
-    
-    @classmethod
-    def _build_identifier(cls):
-        cls.identifier = f'built_in.numbers.{cls.__name__}'
         
     @classmethod
     def is_valid_payload(cls, payload):

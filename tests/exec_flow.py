@@ -6,7 +6,7 @@ from ryvencore import Data
 class Node1(rc.Node):
     title = 'node 1'
     init_inputs = []
-    init_outputs = [rc.NodeOutputType(type_='exec'), rc.NodeOutputType(type_='data')]
+    init_outputs = [rc.PortConfig(type_='exec'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
         self.set_output_val(1, Data('Hello, World!'))

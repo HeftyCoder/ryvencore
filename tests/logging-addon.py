@@ -4,7 +4,7 @@ from utils import check_addon_available
 
 check_addon_available('Logging', __file__)
 
-from ryvencore.addons.Logging import addon as Logging
+from ryvencore.addons.logging import LoggingAddon
 
 
 class NodeBase(rc.Node):
@@ -12,13 +12,13 @@ class NodeBase(rc.Node):
     def __init__(self, params):
         super().__init__(params)
 
-        self.Logging: Logging = self.get_addon('Logging')
+        self.Logging: LoggingAddon = self.get_addon(LoggingAddon.addon_name())
 
 
 class Node1(NodeBase):
     title = 'node 1'
     init_inputs = []
-    init_outputs = [rc.NodeOutputType(type_='data'), rc.NodeOutputType(type_='data')]
+    init_outputs = [rc.PortConfig(type_='data'), rc.PortConfig(type_='data')]
 
     def __init__(self, params):
         super().__init__(params)

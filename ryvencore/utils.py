@@ -12,7 +12,9 @@ from packaging.version import Version, parse as _parse_version
 from types import ModuleType
 from typing import Callable, Any
 from inspect import getmembers, isclass
+from collections.abc import Iterable, Sequence, Mapping
 
+from .base import Identifiable
 
 def pkg_version() -> str:
     return importlib_metadata.version('ryvencore')
@@ -66,10 +68,10 @@ def get_mod_classes(mod: str | ModuleType, to_fill: list | None = None, filter: 
 
     return classes
 
+
 def has_abstractmethods(cls):
     """Returns whether an object has abstract methods"""
     return hasattr(cls, '__abstractmethods__') and len(getattr(cls, '__abstractmethods__')) != 0
-
 
 
     
