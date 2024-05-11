@@ -6,7 +6,7 @@ and a very minimal event system.
 
 from bisect import insort
 from collections.abc import Iterable, Set, Mapping
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, ParamSpec, Callable
 from types import MappingProxyType
 
 
@@ -32,8 +32,9 @@ class IDCtr:
         else:
             self.ctr = cnt
 
+EP = ParamSpec('EP')
 
-class Event:
+class Event(Generic[EP]):
     """
     Implements a generalization of the observer pattern, with additional
     priority support. The lower the value, the earlier the callback
@@ -43,8 +44,7 @@ class Event:
     precedence of internal observers over all user-defined ones.
     """
 
-    def __init__(self, *args):
-        self.args = args
+    def __init__(self):
         self._slots: dict[int, set] = {}
         self._ordered_slot_pos = []
         self._slot_priorities = {}
@@ -55,7 +55,7 @@ class Event:
         self._ordered_slot_pos = []
         self._slot_priorities = {}
         
-    def sub(self, callback, nice=0, one_off=False):
+    def sub(self, callback: Callable[EP, None], nice=0, one_off=False):
         """
         Registers a callback function. The callback must accept compatible arguments.
         The optional :code:`nice` parameter can be used to set the priority of the
@@ -76,13 +76,13 @@ class Event:
             self._one_offs.add(callback)
         self._slot_priorities[callback] = nice
 
-    def unsub(self, callback):
+    def unsub(self, callback: Callable[EP, None]):
         """
         De-registers a callback function. The function must have been added previously.
         """
         self.__unsub(callback, True)
     
-    def __unsub(self, callback, check_one_off):
+    def __unsub(self, callback: Callable[EP, None], check_one_off: bool):
         """
         De-registers a function that was added. If check_one_off, attempts to remove
         it as a one_off function. This is an internal function.
@@ -99,7 +99,7 @@ class Event:
         if check_one_off and callback in self._one_offs:
             self._one_offs.remove(callback)
 
-    def emit(self, *args):
+    def emit(self, *args: EP.args, **kwargs: EP.kwargs):
         """
         Emits an event by calling all registered callback functions with parameters
         given by :code:`args`.
@@ -114,6 +114,11 @@ class Event:
             self.__unsub(one_off_func, False)
         
         self._one_offs.clear()
+
+
+class NoArgsEvent(Event[[]]):
+    """Just wraps the Event[[]] for syntactic sugar. Not usefull in any other way."""
+    pass
 
 
 class Base:

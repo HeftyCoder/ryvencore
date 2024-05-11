@@ -145,11 +145,11 @@ class VarsAddon(AddOn):
         self.flow_vars__pending: dict[int, dict] = {}
 
         # events
-        self._var_created = Event(Variable)
-        self._var_deleted = Event(Variable)
-        self._var_renamed = Event(Variable, str)
-        self._var_type_changed = Event(Variable, Data)
-        self._var_data_loaded = Event(Variable)
+        self._var_created = Event[Variable]()
+        self._var_deleted = Event[Variable]()
+        self._var_renamed = Event[Variable, str]()
+        self._var_type_changed = Event[Variable, Data]()
+        self._var_data_loaded = Event[Variable]()
     
     @property
     def var_created(self):

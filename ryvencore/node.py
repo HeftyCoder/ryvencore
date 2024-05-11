@@ -76,14 +76,14 @@ class Node(Base, Identifiable):
         self._progress = None
         
         # events
-        self.updating = Event(int)
-        self.update_error = Event(Exception)
-        self.input_added = Event(Node, int, NodeInput)
-        self.input_removed = Event(Node, int, NodeInput)
-        self.output_added = Event(Node, int, NodeOutput)
-        self.output_removed = Event(Node, int, NodeOutput)
-        self.output_updated = Event(Node, int, NodeOutput, Data)
-        self.progress_updated = Event(ProgressState)
+        self.updating = Event[int]()
+        self.update_error = Event[Exception]()
+        self.input_added = Event[Node, int, NodeInput]()
+        self.input_removed = Event[Node, int, NodeInput]()
+        self.output_added = Event[Node, int, NodeOutput]()
+        self.output_removed = Event[Node, int, NodeOutput]()
+        self.output_updated = Event[Node, int, NodeOutput, Data]()
+        self.progress_updated = Event[ProgressState]()
 
     def initialize(self):
         """

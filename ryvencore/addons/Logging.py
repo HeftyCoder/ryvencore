@@ -6,16 +6,16 @@ from logging import Logger as PyLogger
 from typing import Optional
 
 from .base import AddOn
-from ..base import Event
+from ..base import NoArgsEvent, Event
 
 
 class Logger(PyLogger):
 
     def __init__(self, *args, **kwargs):
         PyLogger.__init__(self, *args, **kwargs)
-    #     # events
-        self.sig_enabled = Event()
-        self.sig_disabled = Event()  # 'disabled' is reserved
+
+        self.sig_enabled = NoArgsEvent()
+        self.sig_disabled = NoArgsEvent()  # 'disabled' is reserved
 
     def enable(self):
         self.sig_enabled.emit()
@@ -54,10 +54,10 @@ class LoggingAddon(AddOn):
 
         self.loggers = {}   # {Node: {name: Logger}}
 
-        self.log_created = Event(Logger)
+        self.log_created = Event[Logger]()
         # TODO: support deletion of loggers?
 
-    def new_logger(self, node, title: str) -> Optional[Logger]:
+    def new_logger(self, node, title: str) -> Logger | None:
         """
         Creates a new logger owned by the node, returns None if
         one with the given name already exists.

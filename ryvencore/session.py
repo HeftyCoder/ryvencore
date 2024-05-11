@@ -33,9 +33,9 @@ class Session(Base):
         Base.__init__(self)
 
         # events
-        self.flow_created = Event(Flow)
-        self.flow_renamed = Event(Flow, str)
-        self.flow_deleted = Event(Flow)
+        self.flow_created = Event[Flow]()
+        self.flow_renamed = Event[Flow, str]()
+        self.flow_deleted = Event[Flow]()
         
         # ATTRIBUTES
         self._addons: dict[str, AddOn] = {}

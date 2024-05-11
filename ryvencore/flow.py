@@ -120,17 +120,17 @@ class Flow(Base):
         Base.__init__(self)
 
         # events
-        self.node_added = Event(Node)
-        self.node_removed = Event(Node)
-        self.node_created = Event(Node)
-        self.connection_added = Event((NodeOutput, NodeInput))    
-        self.connection_removed = Event((NodeOutput, NodeInput))     
+        self.node_added = Event[Node]()
+        self.node_removed = Event[Node]()
+        self.node_created = Event[Node]()
+        self.connection_added = Event[tuple[NodeOutput, NodeInput]]()    
+        self.connection_removed = Event[tuple[NodeOutput, NodeInput]]()     
 
-        self.connection_request_valid = Event(ConnValidType)
-        self.nodes_created_from_data = Event(list)
-        self.connections_created_from_data = Event(list)
+        self.connection_request_valid = Event[ConnValidType]()
+        self.nodes_created_from_data = Event[list]()
+        self.connections_created_from_data = Event[list]()
 
-        self.algorithm_mode_changed = Event(str)
+        self.algorithm_mode_changed = Event[str]()
 
         # connect events to add-ons
         for addon in session.addons.values():
