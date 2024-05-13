@@ -37,22 +37,6 @@ class Node(Base, Identifiable):
 
     init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
-    
-    
-    @classmethod
-    def _build_id(cls):
-        """
-        Sets the __id to be <identifier_prefix>.<name> depending on if they are set.
-        If the name is not set the class name is used.
-        
-        This must result in a unique string
-        """
-
-        prefix = f'{cls.id_prefix}.' if cls.id_prefix else ''
-        name = cls.id_name if cls.id_name else cls.__name__
-        cls.__id = f'{prefix}{name}'
-
-        # notice that we do not touch the legacy identifier fields
 
     #
     # INITIALIZATION

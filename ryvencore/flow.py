@@ -187,7 +187,7 @@ class Flow(Base):
             # find class
             node_class = find_identifiable(
                 n_c['identifier'],
-                self.session.nodes.union(self.session.invisible_nodes)
+                self.session.node_types.union(self.session.invis_node_types)
             )
 
             node = self.create_node(node_class, n_c)
@@ -227,7 +227,7 @@ class Flow(Base):
             print_err(f'Node class is not of base type {self._node_base_type}')
             return
         
-        if node_class not in self.session.nodes:
+        if node_class not in self.session.node_types:
             print_err(f'Node class {node_class} not in session nodes')
             return
 

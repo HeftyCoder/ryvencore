@@ -44,21 +44,15 @@ class Session(Base):
         self._flows: dict[str, Flow] = {}
         self._flows_proxy = MappingProxyType(self._flows)
         
-        self._inst_data_types: dict[str, type[Data]] = {} # which data types can be instantiated
-        self._inst_data_types_proxy = MappingProxyType(self._inst_data_types)
-        self._data_types: dict[str, type[Data]] = {}
-        self._data_types_proxy = MappingProxyType(self._data_types)
-        
-        self.nodes: set[type[Node]] = set()      # list of node CLASSES
-        self.invisible_nodes: set[type[Node]] = set()
+        self.invis_node_types: set[type[Node]] = set()
         
         self.gui: bool = gui
         self.init_data = None
 
         # groups
-        self._node_groups = IdentifiableGroups[type[Node]](self.nodes)
-        self._data_groups = IdentifiableGroups[type[Data]](self.data_types)
-        self._inst_data_groups = IdentifiableGroups[type[Data]](self._inst_data_types)
+        self._node_type_groups = IdentifiableGroups[Node]()
+        self._data_type_groups = IdentifiableGroups[Data]()
+        self._inst_data_groups = IdentifiableGroups[Data]()
         
         # Register Built-In Data Types
         self.register_data_types(get_built_in_data_types())
@@ -69,7 +63,9 @@ class Session(Base):
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
         
-        
+    @property
+    def node_types(self):
+        return self._node_type_groups.id_set
     
     @property
     def addons(self):
@@ -81,22 +77,22 @@ class Session(Base):
     
     @property
     def data_types(self):
-        return self._data_types_proxy
+        return self._data_type_groups.id_map
     
     @property
     def inst_data_types(self):
         """Returns a readonly dictionay (proxy) for which data types can be instantiated"""
-        return self._inst_data_types_proxy
+        return self._inst_data_groups.id_map
     
     @property
     def node_groups(self):
         """Node types groupped by their id prefix. If it doesn't exist, the key is global"""
-        return self._node_groups
+        return self._node_type_groups
     
     @property
     def data_groups(self):
         """Data types groupped by their id prefix. If it doesn't exist, the key is global"""
-        return self._data_groups
+        return self._data_type_groups
 
     @property
     def inst_data_groups(self):
@@ -182,9 +178,8 @@ class Session(Base):
         """
 
         node_class._build_id()
-        self.nodes.add(node_class)
-        self._node_groups.add(node_class)
-            
+        self._node_type_groups.add(node_class)
+
 
     def unregister_node(self, node_class: type[Node]):
         """
@@ -192,8 +187,7 @@ class Session(Base):
         Existing instances won't be affected.
         """
 
-        self.nodes.remove(node_class)
-        self._node_groups.remove(node_class)
+        self._node_type_groups.remove(node_class)
      
                 
     def all_node_objects(self) -> list[Node]:
@@ -211,20 +205,17 @@ class Session(Base):
         """
 
         data_type_class._build_id()
-        
         id = data_type_class.id()
-        if id == 'Data' or id in self._data_types:
+        
+        add_result = self._data_type_groups.add(data_type_class)
+        if id == 'Data' or not add_result:
             print_err(
                 f'Data type identifier "{id}" is already registered. '
                 f'skipping. You can use the "id" function of '
                 f'your Data subclass.')
             return
 
-        self._data_types[id] = data_type_class
-        self._data_groups.add(data_type_class)
-        
         if data_type_class.instantiable():
-            self._inst_data_types[id] = data_type_class
             self._inst_data_groups.add(data_type_class)
         
         # group data types
@@ -255,7 +246,7 @@ class Session(Base):
         Retrieves a data type with a specific id, if it exists
         """
         
-        return self._data_types.get(id)
+        return self.data_types.get(id)
         
         
     def create_flow(self, title: str = None, data: dict = None) -> Flow | None:
