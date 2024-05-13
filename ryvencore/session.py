@@ -335,13 +335,7 @@ class Session(Base):
         # load flows
         new_flows = []
 
-        #   backward compatibility
-        if 'scripts' in data:
-            flows_data = {
-                title: script_data['flow']
-                for title, script_data in data['scripts'].items()
-            }
-        elif isinstance(data['flows'], list):
+        if isinstance(data['flows'], list):
             flows_data = {
                 f'Flow {i}': flow_data
                 for i, flow_data in enumerate(data['flows'])

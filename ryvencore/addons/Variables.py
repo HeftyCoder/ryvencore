@@ -203,25 +203,18 @@ class VarsAddon(AddOn):
 
     def on_flow_created(self, flow):
         self.flow_variables[flow] = {}
-
+        print(flow.prev_global_id)
+        if flow.prev_global_id in self.flow_vars__pending:
+            for name, data in self.flow_vars__pending[flow.prev_global_id].items():
+                self.create_var(flow, name, load_from=data)
+            del self.flow_vars__pending[flow.prev_global_id]
+        
     def on_flow_deleted(self, flow):
         del self.flow_variables[flow]
 
     """
     subscription management
     """
-
-    def on_node_created(self, node):
-        flow = node.flow
-
-        # is invoked *before* the node is added to the flow
-
-        # unfortunately, I cannot do this in on_flow_created because there
-        # the flow doesn't have it's prev_global_id yet, but here it does
-        if flow.prev_global_id in self.flow_vars__pending:
-            for name, data in self.flow_vars__pending[flow.prev_global_id].items():
-                self.create_var(flow, name, load_from=data)
-            del self.flow_vars__pending[flow.prev_global_id]
 
     def on_node_added(self, node):
         """

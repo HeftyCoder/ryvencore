@@ -25,9 +25,13 @@ class PayloadData(_BuiltInData):
             
 
 class StringData(SequenceData):
+    
+    id_prefix = f"{_BuiltInData.id_prefix}.core"
     collection_type = str
 
 class BytesData(SequenceData):
+    
+    id_prefix = f"{_BuiltInData.id_prefix}.core"
     collection_type = bytes
 
 def __get_all_subclasses(cls):

@@ -92,7 +92,7 @@ class Data(Base, Identifiable):
         
         The default for the base Data is True
         """
-        return False
+        return True
     
     @classmethod
     def is_valid_payload(cls, payload):
