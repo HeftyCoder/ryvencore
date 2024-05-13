@@ -378,7 +378,7 @@ class IdentifiableGroups(Generic[IdType]):
         
         self.id_removed.emit(id_in_dict)
           
-    def get_group(self, group_id: str) -> None | Mapping[str, type[IdType]]:
+    def group(self, group_id: str) -> None | Mapping[str, type[IdType]]:
         """Retrieves a specific group. group_id must exist as a valid group."""
         
         if not group_id in self.__id_groups:
@@ -402,7 +402,7 @@ class IdentifiableGroups(Generic[IdType]):
         self.group_removed.emit(group_id)
         return True
     
-    def get_groups_from_path(self, path: str):
+    def groups_from_path(self, path: str):
         """
         Retrieves all groups whose prefix contains the path
         
@@ -422,7 +422,7 @@ class IdentifiableGroups(Generic[IdType]):
         Useful for "imitating" sub-groups
         """
         
-        to_remove = self.get_groups_from_path(path)
+        to_remove = self.groups_from_path(path)
         for id in to_remove.keys():
             self.remove_group(id)    
         
