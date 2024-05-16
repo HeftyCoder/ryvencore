@@ -3,7 +3,7 @@ from packaging.version import parse as parse_version
 from .. import Node, Data, AddOn, Flow
 from ..base import Event
 from ..info_msgs import InfoMsgs
-from typing import Callable
+from typing import Callable, Any
 
 ADDON_VERSION = '0.4'
 # TODO: replace print_err with InfoMsgs
@@ -148,7 +148,8 @@ class VarsAddon(AddOn):
         self._var_created = Event[Variable]()
         self._var_deleted = Event[Variable]()
         self._var_renamed = Event[Variable, str]()
-        self._var_type_changed = Event[Variable, Data]()
+        self._var_value_changed = Event[Variable, Any]()
+        self._var_type_changed = Event[Variable]()
         self._var_data_loaded = Event[Variable]()
     
     @property
@@ -169,6 +170,14 @@ class VarsAddon(AddOn):
         """
         return self._var_deleted
     
+    @property
+    def var_value_changed(self):
+        """
+        Event emitted when a variable's value changes
+        
+        args: Variable, old_value
+        """
+        return self._var_value_changed
     @property
     def var_type_changed(self):
         """
@@ -203,7 +212,6 @@ class VarsAddon(AddOn):
 
     def on_flow_created(self, flow):
         self.flow_variables[flow] = {}
-        print(flow.prev_global_id)
         if flow.prev_global_id in self.flow_vars__pending:
             for name, data in self.flow_vars__pending[flow.prev_global_id].items():
                 self.create_var(flow, name, load_from=data)
@@ -258,7 +266,7 @@ class VarsAddon(AddOn):
 
         return name.isidentifier() and not self.var_exists(flow, name)
 
-    def rename_var(self, flow: Flow, old_name: str, new_name: str) -> bool:
+    def rename_var(self, flow: Flow, old_name: str, new_name: str, silent=False) -> bool:
         """Renames the variable if it exists"""
         
         if not self.var_exists(flow, old_name) or not new_name.isidentifier():
@@ -270,10 +278,11 @@ class VarsAddon(AddOn):
         v_sub.variable._name = new_name
         self.flow_variables[flow][new_name] = v_sub
         
-        self._var_renamed.emit(v_sub.variable, old_name)
+        if not silent:
+            self._var_renamed.emit(v_sub.variable, old_name)
         return True
       
-    def create_var(self, flow: Flow, name: str, val=None, load_from=None) -> Variable | None:
+    def create_var(self, flow: Flow, name: str, val=None, load_from=None, silent=False) -> Variable | None:
         """
         Creates and returns a new variable and None if the name isn't valid.
         """
@@ -285,10 +294,12 @@ class VarsAddon(AddOn):
         v_sub = VarSubscriber(v)
         
         self.flow_variables[flow][name] = v_sub
-        self._var_created.emit(v)
+        
+        if not silent:
+            self._var_created.emit(v)
         return v
 
-    def delete_var(self, flow: Flow, name: str):
+    def delete_var(self, flow: Flow, name: str, silent=False):
         """
         Deletes a variable and causes subscription update. Subscriptions are preserved.
         """
@@ -298,10 +309,29 @@ class VarsAddon(AddOn):
 
         v_sub = self.flow_variables[flow][name]
         del self.flow_variables[flow][name]
-        self._var_deleted.emit(v_sub.variable)
+        
+        if not silent:
+            self._var_deleted.emit(v_sub.variable)
         return True
 
-    def change_var_type(self, flow: Flow, name: str, d_type: type[Data], value=None, data: dict = None):
+    def change_var_value(self, flow: Flow, name: str, value=None, silent=False):
+        """Changes a variables value"""
+        if not self.var_exists(flow, name):
+            return False
+        v = self.var(flow, name)
+        data = v.data
+        
+        old_value = data.payload
+        if old_value == value:
+            return False
+        
+        data.payload = value
+        
+        if not silent:
+            self._var_value_changed.emit(v, old_value)
+        return True
+    
+    def change_var_type(self, flow: Flow, name: str, d_type: type[Data], value=None, data: dict = None, silent=False):
         """Changes a variables data type"""
         
         if not self.var_exists(flow, name):
@@ -312,9 +342,12 @@ class VarsAddon(AddOn):
             return False
         
         v.set_data_type(d_type, value, data)
-        self._var_type_changed.emit(v, d_type)
+        
+        if not silent:
+            self._var_type_changed.emit(v)
+        return True
     
-    def set_var_from_data(self, flow: Flow, name: str, data: dict):
+    def set_var_from_data(self, flow: Flow, name: str, data: dict, silent=False):
         """Loads a variable's value with serialized data"""
         
         if not self.var_exists(flow, name):
@@ -322,8 +355,11 @@ class VarsAddon(AddOn):
         
         v = self.var(flow, name)
         v.data.load(data)
-        self._var_data_loaded.emit(v)
         
+        if not silent:
+            self._var_data_loaded.emit(v)
+        return True
+    
     def var_exists(self, flow, name: str) -> bool:
         return flow in self.flow_variables and name in self.flow_variables[flow]
 
