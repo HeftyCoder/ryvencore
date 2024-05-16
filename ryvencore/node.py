@@ -284,6 +284,16 @@ class Node(Base, Identifiable):
 
     #   PORTS
 
+    def input_connected(self, inp: int):
+        if len(self._inputs) <= inp:
+            return False
+        return self.flow.connected_output(self._inputs[inp]) is not None
+    
+    def output_connected(self, out: int):
+        if len(self._outputs) <= out:
+            return False
+        return len(self.flow.connected_inputs(self._outputs[out])) > 0
+    
     def create_input(self, port_info: PortConfig = None, load_from = None, insert: int = None):
         """
         Creates and adds a new input at the end or index ``insert`` if specified.

@@ -22,12 +22,17 @@ class Variable:
         self._name = name
         self.data = None
         
-        self.data_type = data_type if data_type else Data
-        self.set_data_type(self.data_type, val, load_from, True)
+        self.data_type = None
+        d_type = data_type if data_type else Data
+        self.set_data_type(d_type, val, load_from, True)
 
     @property
     def name(self):
         return self._name
+    
+    @property
+    def subscriber(self):
+        return self.addon.var_sub(self.flow, self.name)
     
     def get(self):
         """
@@ -39,9 +44,11 @@ class Variable:
         """
         Sets the value of the variable
         """
+        old_val = self.data.payload
         self.data.payload = val
         if not silent:
             self.addon.update_subscribers(self.flow, self._name)
+            self.addon.var_value_changed.emit(self, old_val)
 
     def val_str(self):
         return str(self.data.payload)
@@ -55,6 +62,10 @@ class Variable:
         if not issubclass(data_type, Data):
             raise ValueError(f'{data_type} is not of type {Data}')
         
+        if self.data_type == data_type:
+            return False
+        
+        old_type = self.data_type
         self.data_type = data_type
         if self.data_type.is_valid_payload(value):
             self.data = self.data_type(value=value, load_from=load_from)
@@ -63,7 +74,12 @@ class Variable:
         
         if not silent:
             self.addon.update_subscribers(self.flow, self._name)
-        
+            self.addon.var_type_changed.emit(self, old_type)
+        return True
+    
+    def update_subscribers(self):
+        return self.addon.update_subscribers(self.flow, self._name)
+    
     def serialize(self):
         return self.data.data()
 
@@ -146,10 +162,10 @@ class VarsAddon(AddOn):
 
         # events
         self._var_created = Event[Variable]()
-        self._var_deleted = Event[Variable]()
+        self._var_deleted = Event[Variable, VarSubscriber]()
         self._var_renamed = Event[Variable, str]()
         self._var_value_changed = Event[Variable, Any]()
-        self._var_type_changed = Event[Variable]()
+        self._var_type_changed = Event[Variable, Any]()
         self._var_data_loaded = Event[Variable]()
     
     @property
@@ -281,7 +297,16 @@ class VarsAddon(AddOn):
         if not silent:
             self._var_renamed.emit(v_sub.variable, old_name)
         return True
-      
+    
+    def add_var(self, flow: Flow, var_sub: VarSubscriber):
+        """Forcibly adds a var. Helpful for undo"""
+        self.flow_variables[flow][var_sub.variable.name] = var_sub
+    
+    def remove_var(self, flow: Flow, var: Variable):
+        """Forcibly removes a var if it exists. Helpful for undo"""
+        if self.var_exists(flow, var.name):
+            del self.flow_variables[flow][var.name]
+        
     def create_var(self, flow: Flow, name: str, val=None, load_from=None, silent=False) -> Variable | None:
         """
         Creates and returns a new variable and None if the name isn't valid.
@@ -311,7 +336,7 @@ class VarsAddon(AddOn):
         del self.flow_variables[flow][name]
         
         if not silent:
-            self._var_deleted.emit(v_sub.variable)
+            self._var_deleted.emit(v_sub.variable, v_sub)
         return True
 
     def change_var_value(self, flow: Flow, name: str, value=None, silent=False):
@@ -319,17 +344,11 @@ class VarsAddon(AddOn):
         if not self.var_exists(flow, name):
             return False
         v = self.var(flow, name)
-        data = v.data
-        
-        old_value = data.payload
-        if old_value == value:
+        try:
+            v.set(value, silent)
+            return True
+        except:
             return False
-        
-        data.payload = value
-        
-        if not silent:
-            self._var_value_changed.emit(v, old_value)
-        return True
     
     def change_var_type(self, flow: Flow, name: str, d_type: type[Data], value=None, data: dict = None, silent=False):
         """Changes a variables data type"""
@@ -338,14 +357,11 @@ class VarsAddon(AddOn):
             return False
         
         v = self.var(flow, name)
-        if v.data_type == d_type:
+        try:
+            result = v.set_data_type(d_type, value, data)
+            return result
+        except:
             return False
-        
-        v.set_data_type(d_type, value, data)
-        
-        if not silent:
-            self._var_type_changed.emit(v)
-        return True
     
     def set_var_from_data(self, flow: Flow, name: str, data: dict, silent=False):
         """Loads a variable's value with serialized data"""
@@ -373,6 +389,11 @@ class VarsAddon(AddOn):
 
         return self.flow_variables[flow][name].variable
 
+    def var_sub(self, flow, name: str) -> VarSubscriber | None:
+        """Returns the wrapper that holds the variable and its subscribers"""
+        if self.var_exists(flow, name):
+            return self.flow_variables[flow][name]
+    
     def update_subscribers(self, flow, name: str):
         """
         Called when a Variable object changes or when the var is created or deleted.

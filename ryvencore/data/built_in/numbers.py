@@ -45,7 +45,9 @@ class NumberData(_BuiltInData):
     
     @payload.setter
     def payload(self, value: number_type):
-        
+        self.set_payload(value)
+    
+    def set_payload(self, value: number_type):
         if self.is_valid_payload(value):
             self._payload = value
         elif self.fallback_type:
@@ -69,6 +71,9 @@ class ComplexData(NumberData):
     def payload(self) -> Complex:
         return self._payload
     
+    @payload.setter
+    def payload(self, value: Complex):
+        return self.set_payload(value)
     # Complex isn't JSON serializable by default
     
     def get_data(self):
@@ -88,6 +93,14 @@ class RealData(ComplexData):
     def __init__(self, value: Real = float(), load_from=None):
         super().__init__(value, load_from)
     
+    @property
+    def payload(self) -> Real:
+        return self._payload
+    
+    @payload.setter
+    def payload(self, value: Real):
+        return self.set_payload(value)
+    
 class RationalData(RealData):
     number_type = Rational
     fallback_type = Fraction
@@ -98,6 +111,10 @@ class RationalData(RealData):
     @property
     def payload(self) -> Rational:
         return self._payload
+    
+    @payload.setter
+    def payload(self, value: Rational):
+        self.set_payload(value)
     
     # Rational isn't JSON serializable by default
     def get_data(self) -> dict:
@@ -115,3 +132,11 @@ class IntegerData(RationalData):
     
     def __init__(self, value: Integral = int(), load_from=None):
         super().__init__(value, load_from)
+    
+    @property
+    def payload(self) -> Integral:
+        return self._payload
+    
+    @payload.setter
+    def payload(self, value: Integral):
+        return self.set_payload(value)

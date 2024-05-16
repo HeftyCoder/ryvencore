@@ -28,8 +28,14 @@ class StringData(SequenceData):
     
     id_prefix = f"{_BuiltInData.id_prefix}.core"
     collection_type = str
+    
+    def __init__(self, value='', load_from=None):
+        super().__init__(value, load_from)
 
 class BytesData(SequenceData):
+    
+    def __init__(self, value=bytes(), load_from=None):
+        super().__init__(value, load_from)
     
     id_prefix = f"{_BuiltInData.id_prefix}.core"
     collection_type = bytes
