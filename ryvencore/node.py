@@ -38,6 +38,14 @@ class Node(Base, Identifiable):
     init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
 
+    @classmethod
+    def type_to_data(cls) -> dict[str, ]:
+        return {
+            'title': cls.title,
+            'tags': cls.tags,
+            'version': cls.version,
+            'decs': cls.__doc__
+        }
     #
     # INITIALIZATION
     #

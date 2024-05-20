@@ -558,10 +558,6 @@ class Flow(Base):
     def _gen_conns_data(self, nodes: list[Node]) -> list[dict]:
         """Generates the connections data between and relative to the nodes passed"""
 
-        # notice that this is intentionally not part of Connection, because connection data
-        # is generated always for a specific set of nodes (like all currently selected ones)
-        # and the data dict therefore has the refer to the indices of the nodes in the nodes list
-
         data = []
         for i, n in enumerate(nodes):
             for j, out in enumerate(n._outputs):

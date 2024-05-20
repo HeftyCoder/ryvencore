@@ -41,7 +41,7 @@ class NodePort(Base):
     def load(self, data: dict):
         
         self.load_data = data
-        self.type_ = data['type']
+        self.type_ = data['port_type']
         self.label_str = data['label']
         # allowed data - backwards compatibility
         data_id = data.get('allowed_data')
@@ -52,7 +52,7 @@ class NodePort(Base):
         
         return {
             **super().data(),
-            'type': self.type_,
+            'port_type': self.type_,
             'label': self.label_str,
             'allowed_data': self.allowed_data.identifier if self.allowed_data is not None else None
         }

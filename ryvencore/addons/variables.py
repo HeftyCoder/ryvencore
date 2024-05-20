@@ -81,7 +81,11 @@ class Variable:
         return self.addon.update_subscribers(self.flow, self._name)
     
     def serialize(self):
-        return self.data.data()
+        return {
+            "name": self.name,
+            "value_type": self.data_type.__name__,
+            "value": self.data.data()
+        }
 
 
 class VarSubscriber:
