@@ -90,7 +90,7 @@ Assumptions:
 """
 from .base import Base, Event, find_identifiable
 from .flow_executor import FlowExecutor, executor_from_flow_alg
-from .node import Node
+from .node import Node, NodeType
 from .port import NodeOutput, NodeInput, check_valid_conn
 from .rc import FlowAlg, ConnValidType
 from .utils import *
@@ -98,7 +98,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .session import Session
-
 
 class Flow(Base):
     """
@@ -218,16 +217,14 @@ class Flow(Base):
     #             nodes[node_index]._outputs[output_index].val = data_type(load_from=d['data'])
 
 
-    def create_node(self, node_class: type[Node], data=None):
+    def create_node(self, node_class: type[NodeType], data=None) -> NodeType:
         """Creates, adds and returns a new node object"""
 
         if not issubclass(node_class, self._node_base_type):
-            print_err(f'Node class is not of base type {self._node_base_type}')
-            return
+            raise RuntimeError(f'Node class is not of base type {self._node_base_type}')
         
         if node_class not in self.session.node_types:
-            print_err(f'Node class {node_class} not in session nodes')
-            return
+            raise RuntimeError(f'Node class {node_class} not registered in Session')
 
         # instantiate node
         node = node_class(self)

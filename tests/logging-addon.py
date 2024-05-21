@@ -27,8 +27,8 @@ class Node1(NodeBase):
         self.log2 = self.Logging.new_logger(self, 'log2')
 
     def update_event(self, inp=-1):
-        self.set_output(0, rc.Data('Hello, World!'))
-        self.set_output(1, rc.Data(42))
+        self.set_output(0, 'Hello, World!')
+        self.set_output(1, 42)
         print('finished')
 
 

@@ -10,6 +10,7 @@ from typing import Generic, TypeVar, ParamSpec, Callable, Any
 from types import MappingProxyType
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from beartype.door import is_bearable
 
 @dataclass
 class TypeMeta:
@@ -21,26 +22,47 @@ class TypeMeta:
         return f"{self.package}.{self.type_id}"
     
 class TypeSerializer(ABC):
-    """Serializes/Deserializes an object into JSON compatible dict."""
-    
-    @classmethod
-    def serialize(cls, obj):
-        """
-        Serializes the type. Defaulted to simply returning the type
-        
-        This implementation assumes obj is already JSON compatible
-        """
-        return {'value': obj}
-    
-    @classmethod
-    def deserialize(cls, data: dict):
-        """Retrieves the object from the dict"""
-        return data['value']
+    """
+    Serializes/Deserializes an object into JSON compatible form.
+    """
     
     @abstractmethod
-    @classmethod
-    def default(cls) -> Any:
+    def serialize(self, obj):
+        """Serializes the object"""
         pass
+    
+    @abstractmethod
+    def deserialize(self, data):
+        """Deserializes the object from the data"""
+        pass
+    
+    @abstractmethod
+    def default(self):
+        """Retrieves a default value for this type"""
+        pass
+
+class BasicSerializer(TypeSerializer):
+    """
+    This default implementation simply returns the object as is. Useful
+    for types that are already JSON compatible.
+    """
+    
+    def __init__(self, default_obj_type: type):
+        self.default_obj_type = default_obj_type
+        self._type = default_obj_type
+    
+    def serialize(self, obj):
+        if not is_bearable(obj, self._type):
+            raise ValueError(f"{obj} is not of type {self._type}. Cannot serialize.")
+        return obj
+
+    def deserialize(self, data):
+        if not is_bearable(data, self._type):
+            raise ValueError(f"{data} is not of type {self._type}. Cannot deserialize.")
+        return data
+    
+    def default(self):
+        return self.default_obj_type()
     
 class IDCtr:
     """
@@ -93,7 +115,8 @@ class Event(Generic[EP]):
         The optional :code:`nice` parameter can be used to set the priority of the
         callback. The lower the priority, the earlier the callback is called.
         :code:`nice` can range from -5 to 10.
-        Users of ryvencore are not allowed to use negative priorities.
+        
+        Negative priorities indicate internal functions. Users should not set these.
         """
         assert -5 <= nice <= 10
         assert self._slot_priorities.get(callback) is None

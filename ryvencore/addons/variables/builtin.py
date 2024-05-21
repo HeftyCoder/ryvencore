@@ -1,4 +1,40 @@
 """Various built-in Variables and their Metadata"""
 
-from ...base import TypeMeta, TypeVar
+from ...serializers import (
+    TypeSerializer, 
+    BasicSerializer,
+    ComplexSerializer,
+    FractionSerializer,
+)
+from .core import VarType
+from types import MappingProxyType
+from fractions import Fraction
+
+__built_in_types: dict[type, VarType] = {}
+built_in_types = MappingProxyType(__built_in_types)
+
+base_package = 'builtin'
+numbers_package = f'{base_package}.numbers'
+collection_package = f'{base_package}.collections'
+
+def __var_type(val_type: type, pkg: str, serializer: TypeSerializer, name=None):
+    vt_name = name if name else val_type.__name__
+    var_type = VarType.create(val_type, vt_name, pkg, serializer)
+    __built_in_types[var_type.identifier] = var_type
+    
+def __base_var_type(val_type: type, pkg: str, name=None):
+    serializer = BasicSerializer(val_type)
+    __var_type(val_type, pkg, serializer, name)
+
+# CORE
+__base_var_type(str, base_package)
+__base_var_type(bytes, base_package)
+
+# NUMBERS
+__base_var_type(int, numbers_package)
+__base_var_type(float, numbers_package)
+__var_type(complex, numbers_package, ComplexSerializer())
+__var_type(Fraction, numbers_package, FractionSerializer())
+
+# TODO reason for collections, they might be needed, might not, don't really know   
 

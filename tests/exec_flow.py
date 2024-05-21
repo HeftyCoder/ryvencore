@@ -1,7 +1,7 @@
 import unittest
 import ryvencore as rc
-from ryvencore import Data
 
+# THIS FAILS, won't be tested any time soon (2024)
 
 class Node1(rc.Node):
     title = 'node 1'
@@ -9,7 +9,7 @@ class Node1(rc.Node):
     init_outputs = [rc.PortConfig(type_='exec'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
-        self.set_output(1, Data('Hello, World!'))
+        self.set_output(1, 'Hello, World!')
         self.exec_output(0)
         print('finished')
 
@@ -54,7 +54,7 @@ class ExecFlowBasic(unittest.TestCase):
         n1.update()
 
         self.assertEqual(n1._outputs[0].val, None)
-        self.assertEqual(n1._outputs[1].val.payload, 'Hello, World!')
+        self.assertEqual(n1._outputs[1].val, 'Hello, World!')
 
         self.assertEqual(n2.data, 'Hello, World!')
         self.assertEqual(n3.data, None)

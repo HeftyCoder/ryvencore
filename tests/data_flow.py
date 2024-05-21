@@ -13,14 +13,14 @@ class Node1(NodeBase):
     init_outputs = [rc.PortConfig(type_='data'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
-        self.set_output(0, rc.Data('Hello, World!'))
-        self.set_output(1, rc.Data(42))
+        self.set_output(0, 'Hello, World!')
+        self.set_output(1, 42)
         print('finished')
 
 
 class Node2(NodeBase):
     title = 'node 2'
-    init_inputs = [rc.PortConfig(default=rc.Data('default value'))]
+    init_inputs = [rc.PortConfig(default='default value')]
     init_outputs = []
 
     def update_event(self, inp=-1):
@@ -53,8 +53,8 @@ class DataFlowBasic(unittest.TestCase):
 
         n1.update()
 
-        self.assertEqual(n1._outputs[0].val.payload, 'Hello, World!')
-        self.assertEqual(n1._outputs[1].val.payload, 42)
+        self.assertEqual(n1._outputs[0].val, 'Hello, World!')
+        self.assertEqual(n1._outputs[1].val, 42)
         self.assertEqual(n3.input(0), n4.input(0))
 
         # test save and load
@@ -70,11 +70,12 @@ class DataFlowBasic(unittest.TestCase):
 
         n1_2, n2_2, n3_2, n4_2 = f2.nodes
 
-        assert n2_2.input(0).payload == 'Hello, World!'
-        assert n3_2.input(0).payload == 42
-        assert n4_2.input(0).payload == 42
-
         n1_2.update()
+        
+        assert n2_2.input(0) == 'Hello, World!'
+        assert n3_2.input(0) == 42
+        assert n4_2.input(0) == 42
+
 
 
 if __name__ == '__main__':

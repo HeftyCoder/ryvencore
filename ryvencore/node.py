@@ -7,12 +7,13 @@ from .port import default_config, PortConfig, NodeInput, NodeOutput
 from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
+from .addons.base import AddonType
 
 from beartype.door import is_bearable
 from numbers import Real
 from copy import copy
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from .flow import Flow
 
@@ -385,11 +386,11 @@ class Node(Base, Identifiable):
 
     #   VARIABLES
 
-    def get_addon(self, name: str):
+    def get_addon(self, addon: type[AddonType] | str) -> AddonType:
         """
         Returns an add-on registered in the session by name, or None if it wasn't found.
         """
-        return self.session.addons.get(name)
+        return self.session.addon(addon)
     
     #   PROGRESS
     
@@ -509,7 +510,8 @@ class Node(Base, Identifiable):
 
         return d
     
-    
+NodeType = TypeVar('NodeType', bound=Node)
+ 
 def node_from_identifier(id: str, nodes: list[Node]):
 
     for nc in nodes:

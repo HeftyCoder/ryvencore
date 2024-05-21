@@ -5,7 +5,7 @@ from .rc import PortObjPos, ConnValidType
 from dataclasses import dataclass
 from beartype.door import is_subhint, is_bearable
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .node import Node
 
@@ -19,8 +19,8 @@ class PortConfig:
     
     label: str = ''
     type_: str = 'data'
-    allowed_data = None
-    default = None
+    allowed_data: Any = None
+    default: Any = None
 
 default_config = PortConfig()
 """An instance of a default port configuration"""
@@ -50,7 +50,10 @@ class NodePort(Base):
         self.load_data = data
         self.type_ = data['port_type']
         self.label_str = data['label']
-        self.allowed_data = deserialize(data['allowed_data'])
+        
+        allowed_data = data['allowed_data']
+        allowed_data = deserialize(allowed_data) if allowed_data else None
+        self.allowed_data = allowed_data
         
     def data(self) -> dict:
         

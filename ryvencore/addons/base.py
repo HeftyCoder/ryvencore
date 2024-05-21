@@ -32,7 +32,7 @@ See :code:`ryvencore.addons` for examples.
 
 from __future__ import annotations
 from ..base import Base
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from ..session import Session
     from ..flow import Flow
@@ -162,3 +162,6 @@ class AddOn(Base):
         Loads the data dict generated in :code:`AddOn.data()`.
         """
         self.set_state(data['custom state'], data['version'])
+
+
+AddonType = TypeVar('AddonType', bound=AddOn)

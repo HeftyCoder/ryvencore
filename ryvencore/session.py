@@ -3,7 +3,7 @@ from .flow import Flow
 from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
-from .addons.base import AddOn
+from .addons.base import AddOn, AddonType
 
 from importlib import import_module
 from types import MappingProxyType
@@ -38,7 +38,8 @@ class Session(Base):
         # ATTRIBUTES
         self._addons: dict[str, AddOn] = {}
         self._addons_proxy = MappingProxyType(self._addons)
-        
+        self._addons_by_type: dict[type, AddOn] = {}
+         
         self._flows: dict[str, Flow] = {}
         self._flows_proxy = MappingProxyType(self._flows)
         
@@ -106,6 +107,12 @@ class Session(Base):
             addon = addon_type()
             self.register_addon(addon)
         
+    def addon(self, t: type[AddonType] | str) -> AddonType:
+        if isinstance(t, str):
+            return self._addons[t]
+        else:
+            return self._addons_by_type[t]
+      
     def register_addon(self, addon: AddOn | type[AddOn]):
         """Registers an addon"""
         
@@ -117,12 +124,12 @@ class Session(Base):
         
         addon.register(self)
         self._addons[addon_name] = addon
+        self._addons_by_type[type(addon)] = addon
         self.flow_created.sub(addon.on_flow_created, nice=-5)
         self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
                 
         for f in self._flows.values():
             addon.connect_flow_events(f)
-    
     
     def unregister_addon(self, addon: str | AddOn):
         """Unregisters an addon"""
@@ -134,8 +141,10 @@ class Session(Base):
             
             for f in self._flows.values():
                 to_remove.disconnect_flow_events(f)
-                
+            
+            addon = self._addons[addon_name]
             del self._addons[addon_name]
+            del self._addons_by_type[type(addon)]
 
 
     def register_node_types(self, node_types: Iterable[type[Node]]):

@@ -18,10 +18,19 @@ class VarType:
     Only defined variable types that are registered in the Addon are allowed to
     be used.
     """
-    def __init__(self, val_type: type, type_meta: TypeMeta, type_ser: type[TypeSerializer]):
+    
+    @staticmethod
+    def create(val_type: type, name: str, pkg: str, serializer: TypeSerializer):
+        type_meta = TypeMeta(pkg, name)
+        return VarType(val_type, type_meta, serializer)
+    
+    def __init__(self, val_type: type, type_meta: TypeMeta, type_ser: TypeSerializer):
         self._type_meta = type_meta
+        assert self._type_meta != None, "Type Meta must not be None!"
         self._type_ser = type_ser
+        assert self._type_ser != None, "Type Serializer must not be None!"
         self._val_type = val_type
+        assert self._val_type != None, "Value Type must not be None!"
     
     # Access to internal objects
     @property
@@ -68,22 +77,18 @@ class Variable:
     registering valid data types for use utilizing the VarsAddon API.
     """
 
-    def __init__(self, addon: VarsAddon, flow: Flow, name, val_type: type | str, data=None, val=None ):
+    def __init__(self, addon: VarsAddon, flow: Flow, name, val, data=None):
+        # val can be a value or its type
         self._addon = addon
         self._flow = flow
         self._name = name
-        
-        self._var_type = self._addon.var_type(val_type)
-        if not self._var_type:
-            raise ValueError(f"{val_type} is not registered in the Addon!")
-        
-        self._value = self._var_type.default()
-        
-        if val:
-            self.value = val 
+        self._value = None
+        self._var_type: VarType = None
         
         if data:
-            self.value = self._var_type.deserialize(data)
+            self.load(data)
+        else:
+            self.set_type(val, True)
     
     def __str__(self):
         return str(self.value)
@@ -119,8 +124,8 @@ class Variable:
         return self._var_type
     
     @var_type.setter
-    def var_type(self, value: VarType):
-        pass
+    def var_type(self, val):
+        self.set_type(val)
     
     def set(self, val, silent=False):
         """
@@ -134,35 +139,31 @@ class Variable:
             self.addon.update_subscribers(self.flow, self._name)
             self.addon.var_value_changed.emit(self, old_val)
     
-    def set_val_type(self, val_type, value=None, load_from=None, silent=False):
+    def set_type(self, val, silent=False):
         """
-        Sets the underlying VarType using a value type, e.g. int. The value type must be
+        Sets the underlying VarType using a value or a value type, e.g. 0 or int. The value type must be
         registered in the Addon beforehand.
         """
-        var_type = self._addon.var_type(val_type)
-        if not var_type:
-            raise ValueError(f"{val_type} is not registered in the Addon or is None!")
-        self.set_var_type(var_type, value, load_from, silent)
-    
-    def set_var_type(self, var_type: VarType, value=None, load_from=None, silent=False):
-        """Sets the VarType for this variable"""
-        if not var_type:
-            raise ValueError(f"{var_type} cannot be None")
+        # treat it as a value
+        val_type = type(val)
+        var_type = self.addon.var_type(val_type)
         
-        old_vartype = self._var_type
-        self._var_type = var_type
-        # do not set anything before ensuring that everything works correctly
-        val = self._var_type.default()
-        if value:
-            val = value
-        if load_from:
-            val = self._var_type.deserialize(load_from)
+        # treat it as a value type
+        if not var_type:
+            val_type = val
+            var_type = self.addon.var_type(val_type)
+            val = None
         
-        old_val = self.value
-        self.set(val, True)
+        old_type = self._var_type
+        self._var_type = self._addon.var_type(val_type)
+        if not self._var_type:
+            raise KeyError(f"{val_type} is not registered in the Addon!")
+        
+        self._value = val if val else self._var_type.default()
+        
         if not silent:
-             self.addon.update_subscribers(self.flow, self._name)
-             self.addon.var_type_changed.emit(self, old_vartype)
+            self.addon.update_subscribers(self.flow, self._name)
+            self.addon.var_type_changed.emit(self, old_type)
                      
     def update_subscribers(self):
         return self.addon.update_subscribers(self.flow, self._name)
@@ -170,7 +171,7 @@ class Variable:
     def data(self):
         return {
             'name': self.name,
-            'var_type': self.var_type.identifier() if self.var_type else None,
+            'var_type': self.var_type.identifier,
             'value': self.var_type.serialize(self._value)
         }
     
@@ -242,7 +243,7 @@ class VarsAddon(AddOn):
     _name = 'Variables'
     version = ADDON_VERSION
 
-    def __init__(self):
+    def __init__(self, load_builtins=True):
         AddOn.__init__(self)
 
         self.flow_variables: dict[Flow, dict[str, VarSubscriber]] = {}
@@ -261,7 +262,7 @@ class VarsAddon(AddOn):
         self._var_types: dict[type, VarType] = {}
         self._var_types_proxy = MappingProxyType(self._var_types)
         self._var_type_ids: dict[str, VarType] = {}
-        self._var_type_ids_proxy = MappingProxyType(self._var_type_ids_proxy)
+        self._var_type_ids_proxy = MappingProxyType(self._var_type_ids)
         
         # events
         self._var_created = Event[Variable]()
@@ -270,6 +271,11 @@ class VarsAddon(AddOn):
         self._var_value_changed = Event[Variable, Any]()
         self._var_type_changed = Event[Variable, Any]()
         self._var_data_loaded = Event[Variable]()
+        
+        if load_builtins:
+            from .builtin import built_in_types
+            for val_type, var_type in built_in_types.items():
+                self.register_var_type(var_type)
     
     @property
     def var_types(self):
@@ -335,26 +341,23 @@ class VarsAddon(AddOn):
         return self._var_data_loaded
     
     def var_type(self, id: type | str):
+        """Retrieves the var type. Returns None if it doesn't exist"""
         if isinstance(id, type):
             return self._var_types.get(id)
         elif isinstance(id, str):
             return self._var_type_ids.get(id)
         return None
     
-    def register_var_type(self, t: type, type_id: str, package: str, serializer: type[TypeSerializer]):
+    def register_var_type(self, var_type: VarType):
         """
         A function that registers various data types to be valid variables.
         
         This could be used in the future to import a whole range of data types for variables
         automatically. However, it is left up to the user.
         """
-        type_meta = TypeMeta(package, type_id)
-        if t in self._var_types:
-            raise KeyError(f"{t} with id {type_meta.identifier()} already registered!")
         
-        var_type = VarType(t, type_meta, serializer)
-        self._var_types[t] = var_type
-        self._var_type_ids[type_meta.identifier()] = var_type
+        self._var_types[var_type.val_type] = var_type
+        self._var_type_ids[var_type.identifier] = var_type
         
     """
     flow management
@@ -364,7 +367,7 @@ class VarsAddon(AddOn):
         self.flow_variables[flow] = {}
         if flow.prev_global_id in self.flow_vars__pending:
             for name, data in self.flow_vars__pending[flow.prev_global_id].items():
-                self.create_var(flow, name, load_from=data)
+                self.create_var(flow, name, val=None, load_from=data)
             del self.flow_vars__pending[flow.prev_global_id]
         
     def on_flow_deleted(self, flow):
@@ -441,14 +444,16 @@ class VarsAddon(AddOn):
         if self.var_exists(flow, var.name):
             del self.flow_variables[flow][var.name]
         
-    def create_var(self, flow: Flow, name: str, val=None, load_from=None, silent=False) -> Variable | None:
+    def create_var(self, flow: Flow, name: str, val, load_from=None, silent=False) -> Variable:
         """
         Creates and returns a new variable and None if the name isn't valid.
+        
+        Val can be the value itself or the corresponding type
         """
 
         if not self.var_name_valid(flow, name):
             raise ValueError(f"Name: <{name}> already exists or is not a proper python identifier")
-        
+            
         v = Variable(self, flow, name, val, load_from)
         v_sub = VarSubscriber(v)
         
@@ -457,7 +462,7 @@ class VarsAddon(AddOn):
         if not silent:
             self._var_created.emit(v)
         return v
-
+                
     def delete_var(self, flow: Flow, name: str, silent=False):
         """
         Deletes a variable and causes subscription update. Subscriptions are preserved.
@@ -518,7 +523,7 @@ class VarsAddon(AddOn):
         for (node, cb) in v_sub.subscriptions:
             cb(v)
 
-    def subscribe(self, node: Node, name: str, callback):
+    def subscribe(self, node: Node, name: str, callback: Callable[[Variable], None]):
         """
         Subscribe to a variable. ``callback`` must be a method of the node.
         """
@@ -528,7 +533,7 @@ class VarsAddon(AddOn):
 
         self.flow_variables[node.flow][name].subscriptions.append((node, callback))
 
-    def unsubscribe(self, node: Node, name: str, callback):
+    def unsubscribe(self, node: Node, name: str, callback: Callable[[Variable], None]):
         """
         Unsubscribe from a variable.
         """
