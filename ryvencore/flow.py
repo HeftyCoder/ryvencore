@@ -89,7 +89,6 @@ Assumptions:
 
 """
 from .base import Base, Event, find_identifiable
-from .data.base import Data
 from .flow_executor import FlowExecutor, executor_from_flow_alg
 from .node import Node
 from .port import NodeOutput, NodeInput, check_valid_conn
@@ -158,17 +157,16 @@ class Flow(Base):
         self.alg_mode = FlowAlg.from_str(data['algorithm mode'])
 
         # build flow
-        self.load_components(data['nodes'], data['connections'], data['output data'])
+        self.load_components(data['nodes'], data['connections'])
 
 
-    def load_components(self, nodes_data, conns_data, output_data):
+    def load_components(self, nodes_data, conns_data):
         """Loading nodes and their connections from data as previously returned
         by :code:`Flow.data()`. This method will call :code:`Node.rebuilt()` after
         connections are established on all nodes.
         Returns the new nodes and connections."""
 
         new_nodes = self._create_nodes_from_data(nodes_data)
-        self._set_output_values_from_data(new_nodes, output_data)
         new_conns = self._connect_nodes_from_data(new_nodes, conns_data)
 
         for n in new_nodes:
@@ -197,27 +195,27 @@ class Flow(Base):
 
         return nodes
 
+    # Output no longer serialized here
+    # def _set_output_values_from_data(self, nodes: list[Node], data: list):
+    #     for d in data:
+    #         indices = d['dependent node outputs']
+    #         indices_paired: zip[tuple[int, int]] = zip(indices[0::2], indices[1::2])
+    #         for node_index, output_index in indices_paired:
 
-    def _set_output_values_from_data(self, nodes: list[Node], data: list):
-        for d in data:
-            indices = d['dependent node outputs']
-            indices_paired: zip[tuple[int, int]] = zip(indices[0::2], indices[1::2])
-            for node_index, output_index in indices_paired:
+    #             # find Data class
+    #             dt_id = d['data']['identifier']
+    #             if dt_id == 'Data':
+    #                 data_type = Data
+    #             else:
+    #                 data_type = self.session.data_types.get(dt_id)
 
-                # find Data class
-                dt_id = d['data']['identifier']
-                if dt_id == 'Data':
-                    data_type = Data
-                else:
-                    data_type = self.session.data_types.get(dt_id)
-
-                    if data_type is None:
-                        print_err(f'Tried to use unregistered Data type '
-                                  f'{dt_id} while loading. Skipping. '
-                                  f'Please register data types before using them.')
-                        continue
+    #                 if data_type is None:
+    #                     print_err(f'Tried to use unregistered Data type '
+    #                               f'{dt_id} while loading. Skipping. '
+    #                               f'Please register data types before using them.')
+    #                     continue
                     
-                nodes[node_index]._outputs[output_index].val = data_type(load_from=d['data'])
+    #             nodes[node_index]._outputs[output_index].val = data_type(load_from=d['data'])
 
 
     def create_node(self, node_class: type[Node], data=None):
@@ -545,7 +543,7 @@ class Flow(Base):
             'algorithm mode': FlowAlg.str(self.alg_mode),
             'nodes': self._gen_nodes_data(self.nodes),
             'connections': self._gen_conns_data(self.nodes),
-            'output data': self._gen_output_data(self.nodes),
+            # 'output data': self._gen_output_data(self.nodes),
         }
 
 
@@ -573,23 +571,25 @@ class Flow(Base):
         return data
 
 
-    def _gen_output_data(self, nodes: list[Node]) -> list[dict]:
-        """Serializes output data of the nodes"""
+    # Output Datas no longer serialized here.
 
-        outputs_data = {}
+    # def _gen_output_data(self, nodes: list[Node]) -> list[dict]:
+    #     """Serializes output data of the nodes"""
+    # 
+    #     outputs_data = {}
 
-        for i_n, n in enumerate(nodes):
-            for i_o, out in enumerate(n._outputs):
-                d = out.val
-                if isinstance(d, Data) and d not in outputs_data:
-                    outputs_data[d] = {
-                        'data': d.data(),
-                        'dependent node outputs': [i_n, i_o],
-                    }
-                elif isinstance(d, Data):
-                    outputs_data[d]['dependent node outputs'] += [i_n, i_o]
+    #     for i_n, n in enumerate(nodes):
+    #         for i_o, out in enumerate(n._outputs):
+    #             d = out.val
+    #             if isinstance(d, Data) and d not in outputs_data:
+    #                 outputs_data[d] = {
+    #                     'data': d.data(),
+    #                     'dependent node outputs': [i_n, i_o],
+    #                 }
+    #             elif isinstance(d, Data):
+    #                 outputs_data[d]['dependent node outputs'] += [i_n, i_o]
 
-        return list(outputs_data.values())
+    #     return list(outputs_data.values())
 
 
 

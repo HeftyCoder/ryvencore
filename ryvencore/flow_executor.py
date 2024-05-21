@@ -3,7 +3,6 @@ The flow executors are responsible for executing the flow. They have access to
 the flow as well as the nodes' internals and are able to perform optimizations.
 """
 from __future__ import annotations
-from .data.base import Data
 from .port import NodeOutput, NodeInput
 from .rc import FlowAlg
 
@@ -39,7 +38,7 @@ class FlowExecutor:
         pass
 
     # Node.set_output_val() =>
-    def set_output_val(self, node: Node, index: int, val: Data):
+    def set_output(self, node: Node, index: int, val):
         pass
 
     # Node.exec_output() =>
@@ -82,7 +81,7 @@ class DataFlowNaive(FlowExecutor):
             return inp.default
 
     # Node.set_output_val() =>
-    def set_output_val(self, node: Node, index: int, data):
+    def set_output(self, node: Node, index: int, data):
         out = node._outputs[index]
         if not out.type_ == 'data':
             return
@@ -144,7 +143,7 @@ class DataFlowOptimized(DataFlowNaive):
     # NODE FUNCTIONS
 
     # Node.update() =>
-    def update_node(self, node, inp=-1):
+    def update_node(self, node: Node, inp=-1):
         if self.execution_root_node is None:  # execution starter!
             self.start_execution(root_node=node)
             self.invoke_node_update_event(node, inp)
@@ -153,11 +152,7 @@ class DataFlowOptimized(DataFlowNaive):
         else:
             self.invoke_node_update_event(node, inp)
 
-    # Node.input() =>
-    #   DataFlowNative.input(node, index)
-
-    # Node.set_output_val() =>
-    def set_output_val(self, node, index, data):
+    def set_output(self, node: Node, index: int, data):
         out = node._outputs[index]
 
         if self.execution_root_node is None:  # execution starter!
@@ -177,13 +172,12 @@ class DataFlowOptimized(DataFlowNaive):
                 # there are other possible solutions to this, including running
                 # a new execution analysis of this graph here
 
-                super().set_output_val(node, index, data)
+                super().set_output(node, index, data)
 
             else:
                 out.val = data
                 self.output_updated[out] = True
 
-    # Node.exec_output() =>
     def exec_output(self, node, index):
         # rudimentary exec support also in data flows
 
@@ -319,7 +313,7 @@ class ExecFlowNaive(FlowExecutor):
         self.updated_nodes = None
 
     # Node.update() = >
-    def update_node(self, node, inp):
+    def update_node(self, node: Node, inp: int):
         if inp != -1 and node._inputs[inp].type_ == 'data':
             return
 
@@ -339,7 +333,7 @@ class ExecFlowNaive(FlowExecutor):
             self.updated_nodes = None
 
     # Node.input() =>
-    def input(self, node, index):
+    def input(self, node: Node, index: int):
         inp = node._inputs[index]
         out = self.graph_rev[inp]
         if out:
@@ -352,12 +346,12 @@ class ExecFlowNaive(FlowExecutor):
             return None
 
     # Node.set_output_val() =>
-    def set_output_val(self, node: Node, index: int, data: Data):
+    def set_output(self, node: Node, index: int, data):
         out = node._outputs[index]
         out.val = data
 
     # Node.exec_output() =>
-    def exec_output(self, node, index):
+    def exec_output(self, node: Node, index):
         for inp in self.graph[node._outputs[index]]:
             inp.node.update(inp.node._inputs.index(inp))
 

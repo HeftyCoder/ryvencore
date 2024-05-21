@@ -9,7 +9,7 @@ class Node1(rc.Node):
     init_outputs = [rc.PortConfig(type_='exec'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
-        self.set_output_val(1, Data('Hello, World!'))
+        self.set_output(1, Data('Hello, World!'))
         self.exec_output(0)
         print('finished')
 

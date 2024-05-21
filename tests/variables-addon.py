@@ -35,8 +35,8 @@ class Node1(NodeBase):
         self.var_val = self.Vars.var(self.flow, 'var1').get()
 
     def update_event(self, inp=-1):
-        self.set_output_val(0, rc.Data('Hello, World!'))
-        self.set_output_val(1, rc.Data(42))
+        self.set_output(0, rc.Data('Hello, World!'))
+        self.set_output(1, rc.Data(42))
         print('finished')
 
     def on_var1_changed(self, val):

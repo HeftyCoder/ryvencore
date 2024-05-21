@@ -1,5 +1,3 @@
-from .data import Data 
-from .data.built_in import get_built_in_data_types 
 from .base import Base, Event, IdentifiableGroups
 from .flow import Flow
 from .info_msgs import InfoMsgs
@@ -9,7 +7,7 @@ from .addons.base import AddOn
 
 from importlib import import_module
 from types import MappingProxyType
-from collections.abc import Set, Mapping, Iterable
+from collections.abc import Iterable
 
 
 class Session(Base):
@@ -49,13 +47,8 @@ class Session(Base):
         self.gui: bool = gui
         self.init_data = None
 
-        # groups
+        # node group
         self._node_type_groups = IdentifiableGroups[Node]()
-        self._data_type_groups = IdentifiableGroups[Data]()
-        self._inst_data_groups = IdentifiableGroups[Data]()
-        
-        # Register Built-In Data Types
-        self.register_data_types(get_built_in_data_types())
         
         # Load built-in addons
         if load_addons:
@@ -76,28 +69,9 @@ class Session(Base):
         return self._flows_proxy
     
     @property
-    def data_types(self):
-        return self._data_type_groups.id_map
-    
-    @property
-    def inst_data_types(self):
-        """Returns a readonly dictionay (proxy) for which data types can be instantiated"""
-        return self._inst_data_groups.id_map
-    
-    @property
     def node_groups(self):
         """Node types groupped by their id prefix. If it doesn't exist, the key is global"""
         return self._node_type_groups
-    
-    @property
-    def data_groups(self):
-        """Data types groupped by their id prefix. If it doesn't exist, the key is global"""
-        return self._data_type_groups
-
-    @property
-    def inst_data_groups(self):
-        """Data types that can be instantiated groupped by their id prefix."""
-        return self._inst_data_groups
     
     # TODO: Think of an importing solution for external addons
     # def load_addons(self, location: str | None = None):
@@ -126,7 +100,7 @@ class Session(Base):
         for addon_type in mod_addons:
             addon_name = addon_type.addon_name()
             if addon_name in self._addons:
-                InfoMsgs.write(f"Addon with name {addon_name} has already been registerd!")
+                InfoMsgs.write(f"Addon with name {addon_name} has already been registered!")
                 continue
             
             addon = addon_type()
@@ -149,6 +123,7 @@ class Session(Base):
         for f in self._flows.values():
             addon.connect_flow_events(f)
     
+    
     def unregister_addon(self, addon: str | AddOn):
         """Unregisters an addon"""
         addon_name = addon if isinstance(addon, str) else addon.addon_name()
@@ -161,6 +136,7 @@ class Session(Base):
                 to_remove.disconnect_flow_events(f)
                 
             del self._addons[addon_name]
+
 
     def register_node_types(self, node_types: Iterable[type[Node]]):
         """
@@ -196,57 +172,6 @@ class Session(Base):
         """
 
         return [n for f in self._flows.values() for n in f.nodes]
-
-
-    def register_data_type(self, data_type_class: type[Data]):
-        """
-        Registers a new :code:`Data` subclass which will then be available
-        in the flows.
-        """
-
-        data_type_class._build_id()
-        id = data_type_class.id()
-        
-        add_result = self._data_type_groups.add(data_type_class)
-        if id == 'Data' or not add_result:
-            print_err(
-                f'Data type identifier "{id}" is already registered. '
-                f'skipping. You can use the "id" function of '
-                f'your Data subclass.')
-            return
-
-        if data_type_class.instantiable():
-            self._inst_data_groups.add(data_type_class)
-        
-        # group data types
-        
-
-    def register_data_types(self, data_type_classes: Iterable[type[Data]]):
-        """
-        Registers a list of :code:`Data` subclasses which will then be available
-        in the flows.
-        """
-
-        for d in data_type_classes:
-            self.register_data_type(d)
-
-    
-    def register_data_types_by_base(self, base_type: type[Data]):
-        """
-        Registers :code:`Data` subclasses that belong to a base class.
-        """
-        
-        self.register_data_type(base_type)
-        for data_type in base_type.__subclasses__():
-            self.register_data_type(data_type)
-            
-    
-    def get_data_type(self, id: str) -> type[Data] | None:
-        """
-        Retrieves a data type with a specific id, if it exists
-        """
-        
-        return self.data_types.get(id)
         
         
     def create_flow(self, title: str = None, data: dict = None) -> Flow | None:

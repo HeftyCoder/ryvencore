@@ -2,7 +2,7 @@ from .info_msgs import InfoMsgs
 from .rc import *
 from .session import Session
 from .flow import Flow
-from .data.base import Data
+from .data import Data
 from .addons.base import AddOn
 from .node import Node
 from .port import PortConfig, NodePort, NodeInput, NodeOutput

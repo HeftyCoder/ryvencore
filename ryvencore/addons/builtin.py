@@ -1,6 +1,6 @@
-"""Gathers all the built-in Addons in a list"""
+"""Gathers all the built-in Addons in a tuple"""
 from .logging import LoggingAddon
-from .variables import VarsAddon
+from .variables.core import VarsAddon
  
 
 built_in_addons = (LoggingAddon, VarsAddon)

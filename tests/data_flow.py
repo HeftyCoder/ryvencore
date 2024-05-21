@@ -13,8 +13,8 @@ class Node1(NodeBase):
     init_outputs = [rc.PortConfig(type_='data'), rc.PortConfig(type_='data')]
 
     def update_event(self, inp=-1):
-        self.set_output_val(0, rc.Data('Hello, World!'))
-        self.set_output_val(1, rc.Data(42))
+        self.set_output(0, rc.Data('Hello, World!'))
+        self.set_output(1, rc.Data(42))
         print('finished')
 
 

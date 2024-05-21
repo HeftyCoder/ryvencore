@@ -3,11 +3,9 @@ WIP
 """
 
 from logging import Logger as PyLogger
-from typing import Optional
 
 from .base import AddOn
 from ..base import NoArgsEvent, Event
-
 
 class Logger(PyLogger):
 
@@ -74,7 +72,7 @@ class LoggingAddon(AddOn):
         self.log_created.emit(logger)
         return logger
 
-    def get(self, node, title: str) -> Optional[Logger]:
+    def get(self, node, title: str) -> Logger | None:
         """
         Returns the logger with the given name owned by the node,
         or None if it doesn't exist.

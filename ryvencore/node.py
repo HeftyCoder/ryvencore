@@ -1,18 +1,18 @@
 from __future__ import annotations
 import traceback
-from typing import TYPE_CHECKING
 
 from .base import Base, Identifiable, Event
 
 from .port import default_config, PortConfig, NodeInput, NodeOutput
-from .data.base import Data
 from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
 
+from beartype.door import is_bearable
 from numbers import Real
 from copy import copy
 
+from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .flow import Flow
 
@@ -74,7 +74,7 @@ class Node(Base, Identifiable):
         self.input_removed = Event[Node, int, NodeInput]()
         self.output_added = Event[Node, int, NodeOutput]()
         self.output_removed = Event[Node, int, NodeOutput]()
-        self.output_updated = Event[Node, int, NodeOutput, Data]()
+        self.output_updated = Event[Node, int, NodeOutput, Any]()
         self.progress_updated = Event[ProgressState]()
 
     def initialize(self):
@@ -150,7 +150,7 @@ class Node(Base, Identifiable):
         InfoMsgs.write_err('EXCEPTION in', self.title, '\n', traceback.format_exc())
         self.update_error.emit(e)
 
-    def input(self, index: int) -> Data | None:
+    def input(self, index: int):
         """
         Returns the data residing at the data input of given index.
 
@@ -158,17 +158,6 @@ class Node(Base, Identifiable):
         """
 
         return self.flow.executor.input(self, index)
-    
-    def input_payload(self, index: int):
-        """
-        Returns the payload residing at the data input of given index.
-
-        Do not call on exec inputs
-        """
-        
-        data = self.input(index)
-        
-        return data.payload if data else None
 
     def exec_output(self, index: int):
         """
@@ -179,19 +168,17 @@ class Node(Base, Identifiable):
 
         self.flow.executor.exec_output(self, index)
 
-    def set_output_val(self, index: int, data: Data):
+    def set_output(self, index: int, data):
         """
         Sets the value of a data output causing activation of all connections in data mode.
         """
         
         out = self._outputs[index]
-        data_type = (out.allowed_data 
-                    if out.allowed_data and issubclass(out.allowed_data, Data)
-                    else Data) 
+        data_type = out.allowed_data if out.allowed_data else object
         
-        assert isinstance(data, data_type), f"Output value must be of type {data_type.__module__}.{data_type.__name__}"
+        assert is_bearable(data, data_type), f"Output value must be {data_type}, but it was {type(data)}"
 
-        self.flow.executor.set_output_val(self, index, data)
+        self.flow.executor.set_output(self, index, data)
         
         self.output_updated.emit(self, index, self._outputs[index], data)
     

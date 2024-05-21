@@ -6,10 +6,42 @@ and a very minimal event system.
 
 from bisect import insort
 from collections.abc import Iterable, Set, Mapping
-from typing import Generic, TypeVar, ParamSpec, Callable
+from typing import Generic, TypeVar, ParamSpec, Callable, Any
 from types import MappingProxyType
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
-
+@dataclass
+class TypeMeta:
+    """Metadata regarding a type. Useful if we want to build packages."""
+    package: str
+    type_id: str
+    
+    def identifier(self):
+        return f"{self.package}.{self.type_id}"
+    
+class TypeSerializer(ABC):
+    """Serializes/Deserializes an object into JSON compatible dict."""
+    
+    @classmethod
+    def serialize(cls, obj):
+        """
+        Serializes the type. Defaulted to simply returning the type
+        
+        This implementation assumes obj is already JSON compatible
+        """
+        return {'value': obj}
+    
+    @classmethod
+    def deserialize(cls, data: dict):
+        """Retrieves the object from the dict"""
+        return data['value']
+    
+    @abstractmethod
+    @classmethod
+    def default(cls) -> Any:
+        pass
+    
 class IDCtr:
     """
     A simple ascending integer ID counter.
