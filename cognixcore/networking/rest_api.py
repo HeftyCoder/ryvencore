@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from uvicorn import Server, Config
 from http import HTTPStatus
 
-from ..graph_player import GraphState, GraphActionResponse
+from ..flow_player import GraphState, GraphActionResponse
 from ..models import FlowModel, VarModel
 
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ..session import Session
     from ..flow import Flow
 
-class CognixRestAPI:
+class RestAPI:
     """Handles FastAPI app creation"""
     
     message = 'msg'
@@ -173,7 +173,7 @@ class CognixRestAPI:
             return {
                 name: VarModel(
                     name=name, 
-                    value=var_sub.variable.serialize()
+                    value=var_sub.variable.data()
                 )
                 for name, var_sub in vars.items()
             }
@@ -182,7 +182,7 @@ class CognixRestAPI:
         def get_var(flow_name: str, var_name: str) -> VarModel:
             """Retrieves a variable from a specific flow."""
             var = self.get_var(flow_name, var_name)
-            return VarModel(name=var.name, value=var.serialize())
+            return VarModel(name=var.name, value=var.data())
         
         @self.app.post("/session/flows/{flow_name}/vars/")
         def create_var(flow_name: str, var_model: VarModel) -> VarModel:
@@ -203,20 +203,20 @@ class CognixRestAPI:
             var = self.get_var(flow_name, var_model.name)
             
             if var_model.value_type_id:
-                var.set_data_type(var_model.value_type_id, True)
+                var.set_type(var_model.value_type_id, True)
             
             if var_model.value:
-                var.set_data_type(var_model.value_type_id, load_form=var_model.value)
+                var.set_type(var_model.value_type_id, load_form=var_model.value)
             
             return var_model
         
-class CognixServer:
+class SessionServer:
     """This is a class for creating a REST Api to communicate with a CogniX Session."""
     
-    def __init__(self, session: Session, api: CognixRestAPI = None):
+    def __init__(self, session: Session, api: RestAPI = None):
         
         self.session = session
-        self.api = api if api else CognixRestAPI(session)
+        self.api = api if api else RestAPI(session)
         self.api.create_routes()
         
         self.run_task = None

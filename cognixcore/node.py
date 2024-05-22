@@ -8,6 +8,7 @@ from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
 from .addons.base import AddonType
+from .addons.variables import VarsAddon
 from .config import NodeConfig
 from .utils import get_mod_classes
 
@@ -109,6 +110,18 @@ class Node(Base, Identifiable, ABC):
         """Sets this node's configuration"""
         self.set_config(value, False)
     
+    @property
+    def vars_addon(self):
+        return self.flow.session.addon(VarsAddon)
+    
+    def var_val(self, name: str):
+        """Retrieves the value of a variable"""
+        return self.vars_addon.var(self.flow, name).value
+    
+    def set_var_val(self, name: str, val):
+        """Sets the value of a variable"""
+        self.vars_addon.var(self.flow, name).value = val
+        
     def set_config(self, value: NodeConfig, silent):
         if self._config == value:
             return

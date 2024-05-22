@@ -236,7 +236,7 @@ class GraphPlayer(ABC):
         return self._state == GraphState.STOPPED
 
 
-class CognixPlayer(GraphPlayer):
+class FlowPlayer(GraphPlayer):
     """The default implementation of a Graph Player in CogniX"""
     
     def __init__(self, frames: int = 35):

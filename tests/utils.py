@@ -1,4 +1,4 @@
-import ryvencore as rc
+import cognixcore as rc
 import unittest
 
 

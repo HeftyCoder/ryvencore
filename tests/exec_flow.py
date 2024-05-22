@@ -1,5 +1,5 @@
 import unittest
-import ryvencore as rc
+import cognixcore as rc
 
 # THIS FAILS, won't be tested any time soon (2024)
 

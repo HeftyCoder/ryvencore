@@ -3,4 +3,4 @@ from .flow import *
 from .config  import *
 from .node import *
 from .session import *
-from .graph_player import *
+from .flow_player import *

@@ -1,8 +1,8 @@
 import json
 import unittest
-import ryvencore as rc
+import cognixcore as rc
 
-from ryvencore.addons.variables.core import VarsAddon, Variable
+from cognixcore.addons.variables.core import VarsAddon, Variable
 
 
 class NodeBase(rc.Node):

@@ -98,7 +98,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .session import Session
-    from .graph_player import GraphPlayer
+    from .flow_player import GraphPlayer
 
 class Flow(Base):
     """

@@ -4,13 +4,13 @@ from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
 from .addons.base import AddOn, AddonType
-from .graph_player import (
+from .flow_player import (
     GraphPlayer,
     GraphState,
     GraphActionResponse,
-    CognixPlayer
+    FlowPlayer
 )
-from .networking.rest_api import CognixServer
+from .networking.rest_api import SessionServer
 
 from concurrent.futures import ThreadPoolExecutor, Future
 from typing import Callable
@@ -70,7 +70,7 @@ class Session(Base):
         self._graphs_playing: set[GraphPlayer] = set()
         self._graph_executor = ThreadPoolExecutor
         self._flow_to_future: dict[str, Future] = {}
-        self._rest_api = CognixServer(self)
+        self._rest_api = SessionServer(self)
         
     @property
     def node_types(self):
@@ -210,7 +210,7 @@ class Session(Base):
         """
 
         flow = self._flow_base_type(session=self, title=title)
-        player = player_type(flow, frames) if player_type else CognixPlayer(frames)
+        player = player_type(flow, frames) if player_type else FlowPlayer(frames)
         if data:
             flow.load(data)
         

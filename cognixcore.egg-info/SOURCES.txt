@@ -5,10 +5,13 @@ pyproject.toml
 setup.cfg
 setup.py
 cognixcore/__init__.py
+cognixcore/api.py
 cognixcore/base.py
 cognixcore/flow.py
 cognixcore/flow_executor.py
+cognixcore/flow_player.py
 cognixcore/info_msgs.py
+cognixcore/models.py
 cognixcore/node.py
 cognixcore/port.py
 cognixcore/rc.py
@@ -27,6 +30,11 @@ cognixcore/addons/logging.py
 cognixcore/addons/variables/__init__.py
 cognixcore/addons/variables/builtin.py
 cognixcore/addons/variables/core.py
+cognixcore/config/__init__.py
+cognixcore/config/abc.py
+cognixcore/config/traits.py
+cognixcore/networking/__init__.py
+cognixcore/networking/rest_api.py
 docs/Makefile
 docs/README.md
 docs/make.bat

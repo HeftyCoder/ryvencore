@@ -1,2 +1,5 @@
 packaging
 beartype
+fastapi
+traits
+traitsui

@@ -1,6 +1,6 @@
 import json
 import unittest
-import ryvencore as rc
+import cognixcore as rc
 
 
 class NodeBase(rc.Node):
