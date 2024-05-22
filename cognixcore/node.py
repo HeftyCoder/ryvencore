@@ -8,7 +8,11 @@ from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
 from .addons.base import AddonType
+from .config import NodeConfig
+from .utils import get_mod_classes
 
+from abc import ABC, abstractmethod
+from inspect import isclass
 from beartype.door import is_bearable
 from numbers import Real
 from copy import copy
@@ -17,7 +21,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from .flow import Flow
 
-class Node(Base, Identifiable):
+class Node(Base, Identifiable, ABC):
     """
     Base class for all node blueprints. Such a blueprint is made by subclassing this class and registering that subclass
     in the session. Actual node objects are instances of it. The node's static properties are static attributes.
@@ -39,6 +43,17 @@ class Node(Base, Identifiable):
     init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
 
+    _inner_config_type: type[NodeConfig] | None = None
+    """
+    A nested class named Config can be defined to avoid setting the config_type.
+    It will be used if the config_type is not defined.
+    """
+    
+    def __init_subclass__(cls):
+        attr = getattr(cls, 'Config', None)
+        if (attr and isclass(attr)):
+            cls._inner_config_type = attr
+            
     @classmethod
     def type_to_data(cls) -> dict[str, ]:
         return {
@@ -51,9 +66,14 @@ class Node(Base, Identifiable):
     # INITIALIZATION
     #
     
-    def __init__(self, flow: Flow):
+    def __init__(self, flow: Flow, config: NodeConfig = None):
         Base.__init__(self)
 
+        if config:
+            self._config = config
+        elif self._inner_config_type:
+            self._config = self._inner_config_type(self)
+            
         self.flow = flow
         self.session = flow.session
         
@@ -69,6 +89,7 @@ class Node(Base, Identifiable):
         self._progress = None
         
         # events
+        self.updated = Event[int]()
         self.updating = Event[int]()
         self.update_error = Event[Exception]()
         self.input_added = Event[Node, int, NodeInput]()
@@ -76,8 +97,25 @@ class Node(Base, Identifiable):
         self.output_added = Event[Node, int, NodeOutput]()
         self.output_removed = Event[Node, int, NodeOutput]()
         self.output_updated = Event[Node, int, NodeOutput, Any]()
+        self.config_changed = Event[NodeConfig]()
         self.progress_updated = Event[ProgressState]()
 
+    @property
+    def config(self) -> NodeConfig | None:
+        """Returns this node's configuration, if it exists"""
+    
+    @config.setter
+    def config(self, value: NodeConfig):
+        """Sets this node's configuration"""
+        self.set_config(value, False)
+    
+    def set_config(self, value: NodeConfig, silent):
+        if self._config == value:
+            return
+        self._config = value
+        if not silent:
+            self.config_changed.emit(self._config)
+            
     def initialize(self):
         """
         Sets up the node ports.
@@ -185,15 +223,16 @@ class Node(Base, Identifiable):
     
     """
     
-    EVENT SLOTS
+    ABSTRACTION
     
     """
 
     # these methods get implemented by node implementations
 
+    @abstractmethod
     def update_event(self, inp=-1):
         """
-        *VIRTUAL*
+        *ABSTRACT*
 
         Gets called when an input received a signal or some node requested data of an output in exec mode.
         Implement this in your node class, this is the place where the main processing of your node should happen.
@@ -221,6 +260,46 @@ class Node(Base, Identifiable):
         Called when the node is removed from the flow; useful for stopping threads and timers etc.
         """
 
+        pass
+    
+    def reset(self):
+        """
+        VIRTUAL
+        
+        This is called when the node is reset. Typically happens when the GraphPlayer
+        enters GraphState.Playing state. Implement any initialization here.
+        """
+        pass
+
+    def start(self):
+        """
+        VIRTUAL
+        
+        Invoked when the graph player is started
+        """
+        pass
+    
+    def pause(self):
+        """
+        VIRTUAL
+        
+        Invoked when the graph player is paused
+        """
+    
+    def stop(self):
+        """
+        VIRTUAL
+        
+        Invoked when the graph player is stopped
+        """
+        pass
+    
+    def destroy(self):
+        """
+        Invoked when the application exits
+        
+        Maybe not useful right now
+        """
         pass
 
     def additional_data(self) -> dict:
@@ -465,6 +544,11 @@ class Node(Base, Identifiable):
         # load from data
         self._setup_ports(data['inputs'], data['outputs'])
 
+        # config
+        config_data = data.get('config')
+        if self._config and config_data:
+            self._config.load(config_data)
+            
         # additional data
         if 'additional data' in data:
             add_data = data['additional data']
@@ -501,6 +585,8 @@ class Node(Base, Identifiable):
 
             'inputs': [i.data() for i in self._inputs],
             'outputs': [o.data() for o in self._outputs],
+            
+            'config': self._config.to_json() if self._config else None
         }
 
         # extend with data from addons
@@ -528,3 +614,44 @@ def node_from_identifier(id: str, nodes: list[Node]):
                 f'identifier to the legacy_ids list attribute to provide '
                 f'backwards compatibility.'
             )
+
+
+class FrameNode(Node):
+    """A node which updates every frame of the Cognix Application."""
+    
+    def __init__(self, params):
+        super().__init__(params)
+        # Setting this will stop the node from updating
+        self._is_finished = False
+    
+    @property
+    def is_finished(self):
+        return self._is_finished
+    
+    # implement so it doesn't throw exception
+    def update_event(self, inp=-1):
+        pass
+    
+    # Frame Updates
+    def frame_update(self):
+        """Wraps the frame_update_event with internal calls."""
+        if self.frame_update_event():
+            self.updating.emit(-1)
+    
+    @abstractmethod
+    def frame_update_event(self) -> bool:
+        """Called on every frame. Data might have been passed from other nodes"""
+        pass
+    
+    def reset(self):
+        self._is_finished = False
+        return super().reset()
+
+def get_node_classes(modname: str, to_fill: list | None = None, base_type: type = None):
+    """Returns a list of node types defined in the current mode"""
+    
+    def filter_nodes(obj):
+        return issubclass(obj, Node) and not obj.__abstractmethods__
+        
+    return get_mod_classes(modname, to_fill, filter_nodes)
+

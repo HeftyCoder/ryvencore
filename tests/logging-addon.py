@@ -1,10 +1,10 @@
 import unittest
-import ryvencore as rc
+import cognixcore as rc
 from utils import check_addon_available
 
 check_addon_available('Logging', __file__)
 
-from ryvencore.addons.logging import LoggingAddon
+from cognixcore.addons.logging import LoggingAddon
 
 
 class NodeBase(rc.Node):

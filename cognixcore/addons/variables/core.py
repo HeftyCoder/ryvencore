@@ -253,10 +253,6 @@ class VarsAddon(AddOn):
         # in which case we need to re-establish their subscriptions
         # dict[Node, dict[variable_name, callback_name]]
         self.removed_subscriptions: dict[Node, dict[str, str]] = {}
-
-        # state data of variables that need to be recreated once their flow is
-        # available, see :code:`on_flow_created()`
-        self.flow_vars__pending: dict[int, dict] = {}
         
         # subscribed types that can be variables
         self._var_types: dict[type, VarType] = {}
@@ -274,7 +270,7 @@ class VarsAddon(AddOn):
         
         if load_builtins:
             from .builtin import built_in_types
-            for val_type, var_type in built_in_types.items():
+            for _, var_type in built_in_types.items():
                 self.register_var_type(var_type)
     
     @property
@@ -365,10 +361,6 @@ class VarsAddon(AddOn):
 
     def on_flow_created(self, flow):
         self.flow_variables[flow] = {}
-        if flow.prev_global_id in self.flow_vars__pending:
-            for name, data in self.flow_vars__pending[flow.prev_global_id].items():
-                self.create_var(flow, name, val=None, load_from=data)
-            del self.flow_vars__pending[flow.prev_global_id]
         
     def on_flow_deleted(self, flow):
         del self.flow_variables[flow]
@@ -381,17 +373,11 @@ class VarsAddon(AddOn):
         """
         Reconstruction of subscriptions.
         """
-
         # if node had subscriptions previously (so it was removed)
         if node in self.removed_subscriptions:
             for name, cb_name in self.removed_subscriptions[node].items():
                 self.subscribe(node, name, getattr(node, cb_name))
             del self.removed_subscriptions[node]
-
-        # otherwise, check if it has load data and reconstruct subscriptions
-        elif node.load_data and 'Variables' in node.load_data:
-            for name, cb_name in node.load_data['Variables']['subscriptions'].items():
-                self.subscribe(node, name, getattr(node, cb_name))
 
     def on_node_removed(self, node):
         """
@@ -451,6 +437,7 @@ class VarsAddon(AddOn):
         Val can be the value itself or the corresponding type
         """
 
+        print("CREATING VAR")
         if not self.var_name_valid(flow, name):
             raise ValueError(f"Name: <{name}> already exists or is not a proper python identifier")
             
@@ -528,8 +515,7 @@ class VarsAddon(AddOn):
         Subscribe to a variable. ``callback`` must be a method of the node.
         """
         if not self.var_exists(node.flow, name):
-            # print_err(f'Variable {name} does not exist.')
-            return
+            raise RuntimeError(f"Variable <{name}> doesn't exist.")
 
         self.flow_variables[node.flow][name].subscriptions.append((node, callback))
 
@@ -565,7 +551,6 @@ class VarsAddon(AddOn):
         }
 
     def get_state(self) -> dict:
-        """"""
         
         return {
             f.global_id: {
@@ -576,7 +561,6 @@ class VarsAddon(AddOn):
         }
 
     def set_state(self, state: dict, version: str):
-        """"""
 
         if parse_version(version) < parse_version('0.4'):
             
@@ -588,6 +572,19 @@ class VarsAddon(AddOn):
             int(flow_id): flow_vars
             for flow_id, flow_vars in state.items()
         }
-
-        self.flow_vars__pending = state
+        
+        # the flows have already loaded here
+        for flow in self.session.flows.values():
+            if flow.prev_global_id in state:
+                for name, data in state[flow.prev_global_id].items():
+                    self.create_var(flow, name, val=None, load_from=data)
+            
+            for node in flow.nodes:        
+                # otherwise, check if it has load data and reconstruct subscriptions
+                if node.load_data and 'Variables' in node.load_data:
+                    import traceback
+                    traceback.print_stack()
+                    for name, cb_name in node.load_data['Variables']['subscriptions'].items():
+                        print(cb_name, getattr(node, cb_name))
+                        self.subscribe(node, name, getattr(node, cb_name))
 

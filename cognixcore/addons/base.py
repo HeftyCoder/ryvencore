@@ -53,6 +53,20 @@ class AddOn(Base):
         Called when the add-on is registered with a session.
         """
         self.session = session
+        self.session.flow_created.sub(self.on_flow_created, nice=-5)
+        self.session.flow_deleted.sub(self.on_flow_destroyed, nice=-5)
+        
+        for f in self.session.flows.values():
+            self.connect_flow_events(f)
+    
+    def unregister(self):
+        
+        self.session.flow_created.unsub(self.on_flow_created)
+        self.session.flow_deleted.unsub(self.on_flow_destroyed)
+            
+        for f in self.session.flows.values():
+            self.disconnect_flow_events(f)
+        self.session = None
 
     def connect_flow_events(self, flow: Flow):
         """
@@ -140,11 +154,8 @@ class AddOn(Base):
         *VIRTUAL*
 
         Set the state of the add-on from the dict generated in
-        :code:`AddOn.get_state()`. Notice that add-ons are loaded
-        *before* the flows. If you need to re-establish any sort
-        of connections between flows or nodes and your add-on,
-        you should store :code:`state` and do so in the according
-        slot methods (e.g. :code:`on_node_added()`).
+        :code:`AddOn.get_state()`. Addons are loaded after the
+        Flows.
         """
         pass
 

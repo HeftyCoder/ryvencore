@@ -114,7 +114,7 @@ class VariablesBasic(unittest.TestCase):
         n1_2.update()
         n2_2.update_var1('bro')
 
-        self.assertEqual(n1_2.var_val.value, 'bro')
+        self.assertEqual(n1_2.var_val, 'bro')
 
 
 if __name__ == '__main__':

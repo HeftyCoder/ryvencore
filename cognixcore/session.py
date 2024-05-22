@@ -4,7 +4,16 @@ from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
 from .addons.base import AddOn, AddonType
+from .graph_player import (
+    GraphPlayer,
+    GraphState,
+    GraphActionResponse,
+    CognixPlayer
+)
+from .networking.rest_api import CognixServer
 
+from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Callable
 from importlib import import_module
 from types import MappingProxyType
 from collections.abc import Iterable
@@ -57,6 +66,12 @@ class Session(Base):
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
         
+        # players
+        self._graphs_playing: set[GraphPlayer] = set()
+        self._graph_executor = ThreadPoolExecutor
+        self._flow_to_future: dict[str, Future] = {}
+        self._rest_api = CognixServer(self)
+        
     @property
     def node_types(self):
         return self._node_type_groups.id_set
@@ -73,6 +88,15 @@ class Session(Base):
     def node_groups(self):
         """Node types groupped by their id prefix. If it doesn't exist, the key is global"""
         return self._node_type_groups
+
+    @property
+    def rest_api(self):
+        return self._rest_api
+    
+    def graph_player(self, title: str):
+        """A proxy to the graph players dictionary contained in the session"""
+        flow: Flow = self._flows.get(title)
+        return flow.player if flow else None
     
     # TODO: Think of an importing solution for external addons
     # def load_addons(self, location: str | None = None):
@@ -122,29 +146,19 @@ class Session(Base):
         if not isinstance(addon, AddOn):
             addon = addon()
         
-        addon.register(self)
         self._addons[addon_name] = addon
         self._addons_by_type[type(addon)] = addon
-        self.flow_created.sub(addon.on_flow_created, nice=-5)
-        self.flow_deleted.sub(addon.on_flow_destroyed, nice=-5)
-                
-        for f in self._flows.values():
-            addon.connect_flow_events(f)
+        addon.register(self)
     
     def unregister_addon(self, addon: str | AddOn):
         """Unregisters an addon"""
         addon_name = addon if isinstance(addon, str) else addon.addon_name()
         if addon_name in self._addons:
             to_remove = self._addons[addon_name]
-            self.flow_created.unsub(to_remove.on_flow_created)
-            self.flow_deleted.unsub(to_remove.on_flow_destroyed)
+            to_remove.unregister()
             
-            for f in self._flows.values():
-                to_remove.disconnect_flow_events(f)
-            
-            addon = self._addons[addon_name]
             del self._addons[addon_name]
-            del self._addons_by_type[type(addon)]
+            del self._addons_by_type[type(to_remove)]
 
 
     def register_node_types(self, node_types: Iterable[type[Node]]):
@@ -166,7 +180,7 @@ class Session(Base):
         self._node_type_groups.add(node_class)
 
 
-    def unregister_node(self, node_class: type[Node]):
+    def unregister_node_type(self, node_class: type[Node]):
         """
         Unregisters a node which will then be removed from the available list.
         Existing instances won't be affected.
@@ -183,21 +197,32 @@ class Session(Base):
         return [n for f in self._flows.values() for n in f.nodes]
         
         
-    def create_flow(self, title: str = None, data: dict = None) -> Flow | None:
+    def create_flow(
+        self, 
+        title: str = None, 
+        data: dict = None,
+        player_type: type[GraphPlayer] = None,
+        frames = 30
+    ) -> Flow | None:
         """
         Creates and returns a new flow.
         If data is provided the title parameter will be ignored.
         """
 
         flow = self._flow_base_type(session=self, title=title)
+        player = player_type(flow, frames) if player_type else CognixPlayer(frames)
         if data:
             flow.load(data)
+        
+        flow.player = player
+        player.flow = flow
         
         # Titles should be unique
         if not self.new_flow_title_valid(flow.title):
             return None
         
         self._flows[flow.title] = flow
+        
         self.flow_created.emit(flow)
 
         return flow
@@ -240,7 +265,131 @@ class Session(Base):
         self.flow_deleted.emit(flow)
         return True
 
+    # Player Evaluation
+    
+    def play_flow(self, flow_name: str, on_other_thread=False, callback: Callable[[GraphActionResponse, str], None] = None):
+        """Plays the flow through the graph player"""
+        
+        graph_player = self.graph_player(flow_name)
+        if not graph_player:
+            callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
+            return
+        
+        if graph_player in self._graphs_playing or graph_player.state == GraphState.PLAYING:
+            callback(GraphActionResponse.NOT_ALLOWED, f"Flow {flow_name} is currently playing")
+            return
+        
+        if graph_player.state == GraphState.PAUSED:
+            callback(GraphActionResponse.NOT_ALLOWED, f"Flow {flow_name} is paused")
+            return
+        
+        # To avoid any race conditions because we may start the flow in another thread
+        self._graphs_playing.add(graph_player)
+        if callback:
+            graph_player.graph_events.sub_event(
+                GraphState.PLAYING,
+                lambda: callback(GraphActionResponse.SUCCESS, f"Flow {flow_name} is playing!"),
+                one_off=True
+            )
+        
+        if not on_other_thread:
+            self.__play_flow(flow_name, graph_player)
+        else:
+            play_task = self._graph_executor.submit(self.__play_flow, flow_name, graph_player)
+            self._flow_to_future[flow_name] = play_task
+            
+    
+    def __play_flow(self, flow_name: str, graph_player: GraphPlayer):
+        if graph_player not in self._graphs_playing:
+            self._graphs_playing.add(graph_player)
+        try:
+            graph_player.play()
+        except Exception as e:
+            raise e
+        finally:
+            self._graphs_playing.remove(graph_player)
+            # handles the case where we have threads
+            if flow_name in self._flow_to_future:
+                del self._flow_to_future[flow_name]
+     
+    def pause_flow(self, flow_name: str, callback: Callable[[GraphActionResponse, str], None] = None):
+        """Pauses the graph player"""
+        
+        graph = self.graph_player(flow_name)
+        if not graph and callback:
+            callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
+            return
+        
+        if graph.state == GraphState.PAUSED and callback:
+            callback(GraphActionResponse.NOT_ALLOWED, f"Flow {flow_name} already paused")
+            return
+        
+        if graph.state == GraphState.STOPPED and callback:
+            callback(GraphActionResponse.NOT_ALLOWED, f"Flow {flow_name} isn't playing")
+            return
+        
+        if callback:
+            graph.graph_events.sub_event(
+                GraphState.PAUSED, 
+                lambda: callback(GraphActionResponse.SUCCESS, f"Flow {flow_name} has paused"),
+                one_off=True
+            )
+        
+        graph.pause()
+    
+    def resume_flow(self, flow_name: str, callback: Callable[[GraphActionResponse, str], None] = None):
+        
+        graph = self.graph_player(flow_name)
+        if not graph and callback:
+            callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
+            return
 
+        if graph.state != GraphState.PAUSED and callable:
+            callback(GraphActionResponse.NO_GRAPH, f"Flow {flow_name} is not paused")
+            return
+
+        if callback:
+            graph.graph_events.sub_event(
+                GraphState.PLAYING,
+                lambda: callback(GraphActionResponse.SUCCESS, f"Flow {flow_name} resumted"),
+                one_off=True
+            )
+        
+        graph.resume()
+    
+    def stop_flow(self, flow_name: str, callback: Callable[[GraphActionResponse, str], None] = None):
+        """Stops the graph player"""
+        
+        graph = self.graph_player(flow_name)
+        if not graph and callback:
+            callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
+            return
+        
+        if graph.state != GraphState.PLAYING and callback:
+            callback(GraphActionResponse.NOT_ALLOWED, f"Flow {flow_name} is not playing!")
+            return
+        
+        if callback:
+            graph.graph_events.sub_event(
+                GraphState.STOPPED,
+                lambda: callback(GraphActionResponse.SUCCESS, f"Flow {flow_name} has stopped"),
+                one_off=True
+            )
+            
+        graph.stop()
+    
+    def shutdown(self):
+        
+        # shut down any players
+        for flow_title in self.flows.keys():
+            self.stop_flow(flow_title)
+        
+        self._graph_executor.shutdown()
+        
+        # shut down the rest api
+        self.rest_api.shutdown()
+        
+               
     def _info_messenger(self):
         """
         Returns a reference to InfoMsgs to print info data.
@@ -259,27 +408,20 @@ class Session(Base):
 
         self.init_data = data
 
+        # load flows
+        new_flows = []
+        flows_data = data['flows']
+
+        for title, flow_data in flows_data.items():
+            new_flows.append(self.create_flow(title=title, data=flow_data))
+
         # load addons
         for name, addon_data in data['addons'].items():
             if name in self._addons:
                 self._addons[name].load(addon_data)
             else:
                 print(f'found missing addon: {name}; attempting to load anyway')
-
-        # load flows
-        new_flows = []
-
-        if isinstance(data['flows'], list):
-            flows_data = {
-                f'Flow {i}': flow_data
-                for i, flow_data in enumerate(data['flows'])
-            }
-        else:
-            flows_data = data['flows']
-
-        for title, data in flows_data.items():
-            new_flows.append(self.create_flow(title=title, data=data))
-
+                
         return new_flows
 
     def serialize(self) -> dict:

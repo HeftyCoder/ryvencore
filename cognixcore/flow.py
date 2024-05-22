@@ -98,6 +98,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .session import Session
+    from .graph_player import GraphPlayer
 
 class Flow(Base):
     """
@@ -117,6 +118,8 @@ class Flow(Base):
     def __init__(self, session: 'Session', title: str):
         Base.__init__(self)
 
+        # player - will be set through the session
+        self._player: GraphPlayer = None 
         # events
         self.node_added = Event[Node]()
         self.node_removed = Event[Node]()
@@ -147,6 +150,18 @@ class Flow(Base):
         self.alg_mode = FlowAlg.DATA
         self.executor: FlowExecutor = executor_from_flow_alg(self.alg_mode)(self)
 
+    @property
+    def player(self):
+        return self._player
+    
+    @player.setter
+    def player(self, value: GraphPlayer):
+        if self._player:
+            self._player.stop()
+        
+        self._player = value
+        self._player._flow = self
+        
     def load(self, data: dict):
         """Loading a flow from data as previously returned by ``Flow.data()``."""
         super().load(data)
@@ -187,7 +202,7 @@ class Flow(Base):
                 self.session.node_types.union(self.session.invis_node_types)
             )
 
-            node = self.create_node(node_class, n_c)
+            node = self.create_node(node_class, n_c, True)
             nodes.append(node)
 
         self.nodes_created_from_data.emit(nodes)
@@ -217,7 +232,7 @@ class Flow(Base):
     #             nodes[node_index]._outputs[output_index].val = data_type(load_from=d['data'])
 
 
-    def create_node(self, node_class: type[NodeType], data=None) -> NodeType:
+    def create_node(self, node_class: type[NodeType], data=None, silent=False) -> NodeType:
         """Creates, adds and returns a new node object"""
 
         if not issubclass(node_class, self._node_base_type):
@@ -239,13 +254,13 @@ class Flow(Base):
         if data is not None:
             node.load(data)
 
-        self.node_created.emit(node)
         self.add_node(node)
-
+        if not silent:
+            self.node_created.emit(node)
         return node
 
 
-    def add_node(self, node: Node):
+    def add_node(self, node: Node, silent=False):
         """
         Places the node object in the graph, Stores it, and causes the node's
         ``Node.place_event()`` to be executed. ``Flow.create_node()`` automatically
@@ -273,10 +288,11 @@ class Flow(Base):
         node.after_placement()
         self._flow_changed()
 
-        self.node_added.emit(node)
+        if not silent:
+            self.node_added.emit(node)
 
 
-    def remove_node(self, node: Node):
+    def remove_node(self, node: Node, silent=False):
         """
         Removes a node from the flow without deleting it. Can be added again
         with ``Flow.add_node()``.
@@ -294,12 +310,9 @@ class Flow(Base):
             # del self.graph_adj_rev[inp]
 
         self._flow_changed()
-
-        # notify addons
-        for addon in self.session.addons.values():
-            addon.on_node_removed(node)
-
-        self.node_removed.emit(node)
+        
+        if not silent:
+            self.node_removed.emit(node)
 
 
     def add_node_input(self, node: Node, inp: NodeInput, _call_flow_changed=True):

@@ -14,18 +14,18 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
-from ryvencore import *
+from cognixcore import *
 from setup_cython import *
 from importlib.metadata import metadata
 
 # -- Project information -----------------------------------------------------
 
-project = 'ryvencore'
-copyright = '2022, Leon Thomm'
+project = 'cognixcore'
+copyright = '2024, Leon Thomm'
 author = 'Leon Thomm'
 
 # The full version, including alpha/beta/rc tags
-release = f"v{ metadata('ryvencore')['version'] }"
+release = f"v{ metadata('cognixcore')['version'] }"
 version = release
 
 # -- General configuration ---------------------------------------------------
