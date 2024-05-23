@@ -1,7 +1,7 @@
 from __future__ import annotations
 import traceback
 
-from .base import Base, Identifiable, Event
+from .base import Base, Identifiable, IHaveIdentifiable, Event
 
 from .port import default_config, PortConfig, NodeInput, NodeOutput
 from .info_msgs import InfoMsgs
@@ -22,13 +22,20 @@ from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from .flow import Flow
 
-class Node(Base, Identifiable, ABC):
+class Node(Base, ABC):
     """
     Base class for all node blueprints. Such a blueprint is made by subclassing this class and registering that subclass
     in the session. Actual node objects are instances of it. The node's static properties are static attributes.
     Refer to python's static class attributes behavior.
     """
 
+    id_name: str = None
+    """The name of the node type. The class name will be used if left empty"""
+    id_prefix: str = None,
+    """The prefix of the node type."""
+    legacy_ids: list[str] = []
+    """Legacy ids. Must include the whole id: {prefix}.{name}"""
+    
     title = ''
     """the node's title"""
 
@@ -50,10 +57,27 @@ class Node(Base, Identifiable, ABC):
     It will be used if the config_type is not defined.
     """
     
+    _identifiable: Identifiable = None
+    """The internal identifiable for characterizing this type"""
+    
+    @classmethod
+    def identifiable(cls) -> Identifiable[type[Node]]:
+        return cls._identifiable
+    
     def __init_subclass__(cls):
+        # config
         attr = getattr(cls, 'Config', None)
         if (attr and isclass(attr)):
             cls._inner_config_type = attr
+
+        # identifiable
+        id_name = cls.id_name if cls.id_name else cls.__name__
+        cls._identifiable = Identifiable(
+            id_name=id_name,
+            id_prefix=cls.id_prefix,
+            legacy_ids=cls.legacy_ids,
+            info=cls
+        )
             
     @classmethod
     def type_to_data(cls) -> dict[str, ]:
@@ -100,7 +124,7 @@ class Node(Base, Identifiable, ABC):
         self.output_updated = Event[Node, int, NodeOutput, Any]()
         self.config_changed = Event[NodeConfig]()
         self.progress_updated = Event[ProgressState]()
-
+    
     @property
     def config(self) -> NodeConfig | None:
         """Returns this node's configuration, if it exists"""

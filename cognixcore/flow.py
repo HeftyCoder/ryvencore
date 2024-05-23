@@ -194,13 +194,18 @@ class Flow(Base):
 
         nodes = []
 
+        identifiables = [
+            node.identifiable()
+            for node in 
+            self.session.node_types.union(self.session.invis_node_types) 
+        ]
         for n_c in nodes_data:
 
             # find class
             node_class = find_identifiable(
                 n_c['identifier'],
-                self.session.node_types.union(self.session.invis_node_types)
-            )
+                identifiables
+            ).info
 
             node = self.create_node(node_class, n_c, True)
             nodes.append(node)

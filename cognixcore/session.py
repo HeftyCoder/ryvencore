@@ -58,7 +58,7 @@ class Session(Base):
         self.init_data = None
 
         # node group
-        self._node_type_groups = IdentifiableGroups[Node]()
+        self._node_type_groups = IdentifiableGroups[type[Node]]()
         
         # Load built-in addons
         if load_addons:
@@ -74,7 +74,7 @@ class Session(Base):
         
     @property
     def node_types(self):
-        return self._node_type_groups.id_set
+        return self._node_type_groups.infos
     
     @property
     def addons(self):
@@ -86,7 +86,7 @@ class Session(Base):
     
     @property
     def node_groups(self):
-        """Node types groupped by their id prefix. If it doesn't exist, the key is global"""
+        """The identifiables of Node types groupped by their id prefix. If it doesn't exist, the key is global"""
         return self._node_type_groups
 
     @property
@@ -176,8 +176,7 @@ class Session(Base):
         Registers a single node.
         """
 
-        node_class._build_id()
-        self._node_type_groups.add(node_class)
+        self._node_type_groups.add(node_class.identifiable())
 
 
     def unregister_node_type(self, node_class: type[Node]):
@@ -186,7 +185,7 @@ class Session(Base):
         Existing instances won't be affected.
         """
 
-        self._node_type_groups.remove(node_class)
+        self._node_type_groups.remove(node_class.identifiable())
      
                 
     def all_node_objects(self) -> list[Node]:

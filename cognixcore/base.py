@@ -160,7 +160,7 @@ class Event(Generic[EP]):
         given by :code:`args`.
         """
 
-        # notice we're using the ordered list to run through the events
+        # we're using the ordered list to run through the events
         for nice in self._ordered_slot_pos:
             for cb in self._slots[nice]:
                 cb(*args)
@@ -266,60 +266,61 @@ class Base:
             self._prev_id_objs[self.prev_global_id] = self
             self.prev_version = data.get('version')
 
+InfoType = TypeVar('InfoType')
+"""TypeVar for specifying an Identifiable's info, if it exists""" 
 
-class Identifiable:
+class Identifiable(Generic[InfoType]):
     """
-    A **class whose definition** can be identified by a unique string.
-    
-    Essentially, sub-classes must implement the below fields to provide uniqueness per sub-class.
-    If none of the fields are given, then the ID of the class is its name, which in general is unique.
-    (We might need to change this approach to be <module>.<name> for guaranteed uniqueness)
+    A **container** that provides metadata useful for grouping.
     """
     
-    id_prefix: str = None
-    """becomes the first part of the identifier if set; can be useful for grouping identifiables"""
-    
-    id_name: str = None
-    """becomes the last part of the identifier if set; otherwise the class name is used"""
-    
-    _id: str = None
-    """unique node identifier string which is set by _build_identifier"""
-    
-    legacy_ids: list[str] = []
-    """a list of compatible identifiers, useful when you change the class name (and hence the identifier) to provide 
-    backward compatibility to load old projects that rely on the old identifier"""
-    
-    @classmethod
-    def id(cls):
-        """Returns the id of this identifiable. Useful only after _build_identifier is called."""
-        return cls._id
-
-    @classmethod
-    def name(cls):
-        """Returns the name of this identifiable. It is either the id_name or the __name__"""
-        return cls.id_name if cls.id_name else cls.__name__
-    
-    @classmethod
-    def _build_id(cls):
-        """
-        Sets the __id to be <identifier_prefix>.<name> depending on if they are set.
-        If the name is not set the class name is used.
+    def __init__(
+        self,
+        id_name: str,
+        id_prefix: str | None = None,
+        legacy_ids: list[str] = [],
+        info: InfoType | None = None
+    ):
+        self._id_prefix = id_prefix
+        self._id_name = id_name
+        self.legacy_ids = legacy_ids
         
-        This must result in a unique string
-        """
-
-        prefix = f'{cls.id_prefix}.' if cls.id_prefix else ''
-        cls._id = f'{prefix}{cls.name()}'
+        prefix = f'{self._id_prefix}.' if self._id_prefix else ''
+        self._id = f'{prefix}{self.name}'
         
-        # notice we do not touch the legacy_identifiers
+        self._info = info
+    
+    @property
+    def id(self):
+        """The id of this identifiable. A combination of the prefix (if used) and the name."""
+        return self._id
 
+    @property
+    def name(self):
+        """The name of this identifiable."""
+        return self._id_name
+    
+    @property
+    def prefix(self):
+        """The prefix of this identifable"""
+        return self._id_prefix
+    
+    @property
+    def info(self):
+        """The info of an identifiable"""
+        return self._info
 
-IdType = TypeVar('IdType', bound=Identifiable)  
+class IHaveIdentifiable:
+    """If an object has identifiable information, it must conform to this contract"""
+    
+    @property
+    def identifiable(self) -> Identifiable:
+        raise NotImplemented("The identifiable method must be implemented") 
 
-def find_identifiable(id: str, to_search: Iterable[type[IdType]]):
+def find_identifiable(id: str, to_search: Iterable[Identifiable[InfoType]]):
 
     for nc in to_search:
-        if nc.id() == id:
+        if nc.id == id:
             return nc
     else:  # couldn't find a identifiable with this identifier => search in legacy_ids
         for nc in to_search:
@@ -334,43 +335,44 @@ def find_identifiable(id: str, to_search: Iterable[type[IdType]]):
             )
             
 
-class IdentifiableGroups(Generic[IdType]):
+class IdentifiableGroups(Generic[InfoType]):
     """
-    Groups identifiables by their id prefix and id name. Identifiables with no prefix are groupped under 'global'
+    Groups identifiables by their prefix and name. Identifiables with no prefix are groupped under 'global'
     
     Also holds structures for getting an identifiable by its name
     """
     NO_PREFIX_ROOT = 'global'
     
-    def __init__(self, ids: Iterable[type[IdType]] = []):
+    def __init__(self, ids: Iterable[Identifiable[InfoType]] = []):
         
-        self.__id_set = set[type[IdType]]()
+        self.__id_set = set[Identifiable[InfoType]]()
         
-        self.__id_dict = dict[str, type[IdType]]()
+        self.__id_dict = dict[str, Identifiable[InfoType]]()
         self.__id_dict_proxy = MappingProxyType(self.__id_dict)
         
-        self.__id_groups: dict[str, dict[str, type[IdType]]] = {
+        self.__id_groups: dict[str, dict[str, Identifiable[InfoType]]] = {
             'global': {}
         }
         self._groups_proxy = MappingProxyType(self.__id_groups)
         
         # init
         for item in ids:
-            if not item.id_prefix:
+            if not item.prefix:
                 group = self.__id_groups['global']
             else:
-                if not item.id_prefix in self.__id_groups:
-                    self.__id_groups[item.id_prefix] = group = {}
+                if not item.prefix in self.__id_groups:
+                    self.__id_groups[item.prefix] = group = {}
                 else:
-                    group = self.__id_groups[item.id_prefix]
+                    group = self.__id_groups[item.prefix]
         
-            group[item.name()] = item
+            group[item.name] = item
         
+        self.infos = {id.info for id in self.__id_set}
         # events
         self.group_added = Event[str]()
         self.group_removed = Event[str]()
-        self.id_added = Event[type[IdType]]()
-        self.id_removed = Event[type[IdType]]()
+        self.id_added = Event[Identifiable[InfoType]]()
+        self.id_removed = Event[Identifiable[InfoType]]()
     
     
     def __str__(self) -> str:
@@ -391,49 +393,53 @@ class IdentifiableGroups(Generic[IdType]):
         """The identifiable groupped by their prefixes"""
         return self._groups_proxy
     
-    def add(self, id: IdType):
+    def add(self, id: Identifiable[InfoType]):
         """Adds an identifiable to its group. Creates the group if it doesn't exist"""
         
-        if id.id() in self.__id_dict:
+        if id.id in self.__id_dict:
             return False
         
-        if not id.id_prefix:
+        if not id.prefix:
             group = self.__id_groups['global']
-        elif id.id_prefix in self.__id_groups:
-            group = self.__id_groups[id.id_prefix]
+        elif id.prefix in self.__id_groups:
+            group = self.__id_groups[id.prefix]
         else:
-            self.__id_groups[id.id_prefix] = group = {}
-            self.group_added.emit(id.id_prefix)
+            self.__id_groups[id.prefix] = group = {}
+            self.group_added.emit(id.prefix)
         
-        group[id.name()] = id
+        group[id.name] = id
+        self.infos.add(id.info)
+        
         self.__id_set.add(id)
-        self.__id_dict[id.id()] = id
+        self.__id_dict[id.id] = id
         self.id_added.emit(id)
         
         return True
     
-    def remove(self, id: IdType):
+    def remove(self, id: Identifiable):
         """Removes an identifiable from its group. Deletes the group if it's empty"""
         
-        id_in_dict = self.__id_dict.get(id.id())
+        id_in_dict = self.__id_dict.get(id.id)
         if not id_in_dict:
             return False
         
-        if not id.id_prefix:
-            del self.__id_groups['global'][id.name()]
+        if not id.prefix:
+            del self.__id_groups['global'][id.name]
         else:
-            del self.__id_groups[id.id_prefix][id.name()]
-            if not self.__id_groups[id.id_prefix]:
-                del self.__id_groups[id.id_prefix]
+            del self.__id_groups[id.prefix][id.name]
+            if not self.__id_groups[id.prefix]:
+                del self.__id_groups[id.prefix]
                 
-                self.group_removed.emit(id.id_prefix)
+                self.group_removed.emit(id.prefix)
         
         self.__id_set.remove(id_in_dict)
-        del self.__id_dict[id.id()]
+        del self.__id_dict[id.id]
+        
+        self.infos.remove(id.info)
         
         self.id_removed.emit(id_in_dict)
           
-    def group(self, group_id: str) -> None | Mapping[str, type[IdType]]:
+    def group(self, group_id: str) -> None | Mapping[str, Identifiable]:
         """Retrieves a specific group. group_id must exist as a valid group."""
         
         if not group_id in self.__id_groups:
@@ -449,7 +455,8 @@ class IdentifiableGroups(Generic[IdType]):
         
         for id in group.values():
             self.__id_set.remove(id)
-            del self.__id_dict[id.id()]
+            self.infos.remove(id.info)
+            del self.__id_dict[id.id]
             if emit_id_removed:
                 self.id_removed.emit(id)
         
