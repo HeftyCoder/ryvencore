@@ -1,13 +1,15 @@
 from __future__ import annotations
 from packaging.version import parse as parse_version
-from ... import Node, Flow
 from ..base import AddOn
 from ...base import Event
 from ...info_msgs import InfoMsgs
-from typing import Callable, Any
 from types import MappingProxyType
 from ...base import TypeMeta, TypeSerializer
 
+from typing import Callable, Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    from ... import Node, Flow
+    
 ADDON_VERSION = '0.4'
 # TODO: replace print_err with InfoMsgs
     

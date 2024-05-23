@@ -16,11 +16,11 @@ from inspect import isclass
 from beartype.door import is_bearable
 from numbers import Real
 from copy import copy
+from .addons.variables import VarsAddon
 
 from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from .flow import Flow
-    from .addons.variables import VarsAddon
 
 class Node(Base, ABC):
     """
@@ -154,6 +154,12 @@ class Node(Base, ABC):
     
     def var_val(self, name: str):
         """Retrieves the value of a variable"""
+        return self.vars_addon.var(self.flow, name).value
+    
+    def var_val_get(self, name: str):
+        """Retrieves the value of a variable. Returns None if it doesn't exist."""
+        if not self.vars_addon.var_exists(self.flow, name):
+            return None
         return self.vars_addon.var(self.flow, name).value
     
     def set_var_val(self, name: str, val):
