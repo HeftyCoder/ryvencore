@@ -43,7 +43,11 @@ class Node(Base, ABC):
     """a list of tag strings, often useful for searching etc."""
 
     version: str = None
-    """version tag, use it!"""
+    """
+    version tag, use it! In the context of CogniX, all usable
+    nodes must have a version, otherwise they're hidden. This
+    applies only in Cognix, not in cognixcore.
+    """
 
     init_inputs: list[PortConfig] = []
     """list of node input types determining the initial inputs"""
@@ -705,10 +709,23 @@ class FrameNode(Node):
         return super().reset()
 
 def get_node_classes(modname: str, to_fill: list | None = None, base_type: type = None):
-    """Returns a list of node types defined in the current mode"""
+    """Returns a list of node types defined in the current module that are not abstract"""
     
     def filter_nodes(obj):
         return issubclass(obj, Node) and not obj.__abstractmethods__
         
     return get_mod_classes(modname, to_fill, filter_nodes)
+
+def get_versioned_nodes(modname: str, to_fill: list | None = None, base_type: type = None):
+    """
+    Returns a list of node types defined in the current module that are not
+    abstract and their version attribute is not None.
+    """
+    def filter_nodes(obj):
+        return (
+            issubclass(obj, Node) and 
+            not obj.__abstractmethods__ and
+            obj.version
+        )
+    return get_mod_classes(modname, to_fill, filter_nodes) 
 
