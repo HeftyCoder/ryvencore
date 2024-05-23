@@ -90,7 +90,7 @@ class Variable:
             self.load(data)
         else:
             self.set_type(type(val), True)
-            self.value = val
+            self.set(val, True)
     
     def __str__(self):
         return str(self.value)
@@ -147,12 +147,22 @@ class Variable:
         registered in the Addon beforehand.
         """
         
+        var_type = self._addon.var_type(val_type)
+        self.set_var_type(var_type, silent)
+    
+    def set_var_type(self, var_type: VarType, silent=False):
+        """Sets the VarType of this Variable"""
+       
         old_type = self._var_type
-        self._var_type = self._addon.var_type(val_type)
+        if not var_type.val_type in self._addon.var_types:
+            raise ValueError(f"{var_type.val_type} has not been registered!")
+        
+        self._var_type = var_type
+        self.set(var_type.default(), True)
         if not silent:
             self.addon.update_subscribers(self.flow, self._name)
-            self.addon.var_type_changed.emit(self, old_type)
-                     
+            self.addon.var_type_changed.emit(self, old_type)       
+                  
     def update_subscribers(self):
         return self.addon.update_subscribers(self.flow, self._name)
     
@@ -435,7 +445,7 @@ class VarsAddon(AddOn):
         # if there isn't a value, create an integer
         if not val:
             val = 0
-        print("CREATING VAR")
+            
         if not self.var_name_valid(flow, name):
             raise ValueError(f"Name: <{name}> already exists or is not a proper python identifier")
             

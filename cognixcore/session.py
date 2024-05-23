@@ -68,7 +68,7 @@ class Session(Base):
         
         # players
         self._graphs_playing: set[GraphPlayer] = set()
-        self._graph_executor = ThreadPoolExecutor
+        self._graph_executor = ThreadPoolExecutor()
         self._flow_to_future: dict[str, Future] = {}
         self._rest_api = SessionServer(self)
         

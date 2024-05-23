@@ -70,7 +70,12 @@ class Node(Base, ABC):
             legacy_ids=cls.legacy_ids,
             info=cls
         )
-        
+    
+    @classmethod
+    def id(cls):
+        """Shortcut for Node.identifiale.id()"""
+        return cls.identifiable().id
+    
     @classmethod
     def identifiable(cls) -> Identifiable[type[Node]]:
         return cls._identifiable
