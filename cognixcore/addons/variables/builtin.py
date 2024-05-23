@@ -7,11 +7,14 @@ from ...serializers import (
     FractionSerializer,
 )
 from .core import VarType
+from ...base import Identifiable, IdentifiableGroups
 from types import MappingProxyType
 from fractions import Fraction
 
 __built_in_types: dict[type, VarType] = {}
 built_in_types = MappingProxyType(__built_in_types)
+
+variable_groups = IdentifiableGroups[VarType]()
 
 base_package = 'builtin'
 numbers_package = f'{base_package}.numbers'
@@ -21,6 +24,9 @@ def __var_type(val_type: type, pkg: str, serializer: TypeSerializer, name=None):
     vt_name = name if name else val_type.__name__
     var_type = VarType.create(val_type, vt_name, pkg, serializer)
     __built_in_types[var_type.identifier] = var_type
+    
+    var_identifiable = Identifiable(var_type.name, var_type.package, info=var_type)
+    variable_groups.add(var_identifiable)
     
 def __base_var_type(val_type: type, pkg: str, name=None):
     serializer = BasicSerializer(val_type)

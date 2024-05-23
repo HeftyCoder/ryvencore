@@ -15,7 +15,7 @@ except ImportError as e:
     print("Pydantic V2 is required!")
     raise e
 
-from ryvencore.base import Base
+from .base import Base
 
 class CognixModel(BaseModel):
     """The base model for a cognixcore Base class"""

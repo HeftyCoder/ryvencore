@@ -172,7 +172,6 @@ class GraphTime:
 class GraphPlayer(ABC):
     """
     A player is a class that handles the life-time of a node program.
-    In ryvencore's context, the executor should always be naive.
     """
     
     def __init__(self, frames: int = 30):

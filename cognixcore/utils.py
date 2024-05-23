@@ -17,13 +17,13 @@ from collections.abc import Iterable, Sequence, Mapping
 from .base import Identifiable
 
 def pkg_version() -> str:
-    return importlib_metadata.version('ryvencore')
+    return importlib_metadata.version('cognixcore')
 
 
 def pkg_path(subpath: str = None):
     """
     Returns the path to the installed package root directory, optionally with a relative sub-path appended.
-    Notice that this returns the path to the ryvencore package (ryvencore/ryvencore/) not the repository (ryvencore/).
+    Notice that this returns the path to the cognixcore package (cognixcore/cognixcore/) not the repository (cognixcore/).
     """
 
     p = dirname(__file__)

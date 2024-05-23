@@ -8,7 +8,6 @@ from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
 from .addons.base import AddonType
-from .addons.variables import VarsAddon
 from .config import NodeConfig
 from .utils import get_mod_classes
 
@@ -21,6 +20,7 @@ from copy import copy
 from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from .flow import Flow
+    from .addons.variables import VarsAddon
 
 class Node(Base, ABC):
     """
@@ -61,6 +61,17 @@ class Node(Base, ABC):
     """The internal identifiable for characterizing this type"""
     
     @classmethod
+    def build_identifiable(cls):
+        """Builds the internal identifiable that helps group nodes."""
+        id_name = cls.id_name if cls.id_name else cls.__name__
+        cls._identifiable = Identifiable(
+            id_name=id_name,
+            id_prefix=cls.id_prefix,
+            legacy_ids=cls.legacy_ids,
+            info=cls
+        )
+        
+    @classmethod
     def identifiable(cls) -> Identifiable[type[Node]]:
         return cls._identifiable
     
@@ -70,14 +81,10 @@ class Node(Base, ABC):
         if (attr and isclass(attr)):
             cls._inner_config_type = attr
 
-        # identifiable
-        id_name = cls.id_name if cls.id_name else cls.__name__
-        cls._identifiable = Identifiable(
-            id_name=id_name,
-            id_prefix=cls.id_prefix,
-            legacy_ids=cls.legacy_ids,
-            info=cls
-        )
+        # we're automatically building the identifiable here
+        # however, one can also build it externally to change
+        # the structure of their package
+        cls.build_identifiable()
             
     @classmethod
     def type_to_data(cls) -> dict[str, ]:

@@ -88,6 +88,7 @@ Assumptions:
     * no non-terminating feedback loops with exec connections
 
 """
+from __future__ import annotations
 from .base import Base, Event, find_identifiable
 from .flow_executor import FlowExecutor, executor_from_flow_alg
 from .node import Node, NodeType

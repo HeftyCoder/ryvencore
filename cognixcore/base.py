@@ -290,6 +290,9 @@ class Identifiable(Generic[InfoType]):
         
         self._info = info
     
+    def __str__(self) -> str:
+        return f"prexix: {self._id_prefix} name: {self._id_name} info: {self.info}"
+    
     @property
     def id(self):
         """The id of this identifiable. A combination of the prefix (if used) and the name."""

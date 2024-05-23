@@ -175,7 +175,7 @@ class Session(Base):
         """
         Registers a single node.
         """
-
+        node_class.build_identifiable() # if it was modified externally
         self._node_type_groups.add(node_class.identifiable())
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from json import dumps, loads
 
 from threading import Thread
-from ryvencore.addons.variables import VarsAddon
+from ..addons.variables import VarsAddon
 from fastapi import FastAPI, HTTPException
 from uvicorn import Server, Config
 from http import HTTPStatus

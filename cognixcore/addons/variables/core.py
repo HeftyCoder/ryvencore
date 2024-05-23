@@ -1,6 +1,7 @@
 from __future__ import annotations
 from packaging.version import parse as parse_version
-from ... import Node, AddOn, Flow
+from ... import Node, Flow
+from ..base import AddOn
 from ...base import Event
 from ...info_msgs import InfoMsgs
 from typing import Callable, Any
@@ -78,7 +79,7 @@ class Variable:
     """
 
     def __init__(self, addon: VarsAddon, flow: Flow, name, val, data=None):
-        # val can be a value or its type
+        # val must be an instance of a registered type
         self._addon = addon
         self._flow = flow
         self._name = name
@@ -88,7 +89,8 @@ class Variable:
         if data:
             self.load(data)
         else:
-            self.set_type(val, True)
+            self.set_type(type(val), True)
+            self.value = val
     
     def __str__(self):
         return str(self.value)
@@ -124,7 +126,7 @@ class Variable:
         return self._var_type
     
     @var_type.setter
-    def var_type(self, val):
+    def var_type(self, val: type):
         self.set_type(val)
     
     def set(self, val, silent=False):
@@ -139,28 +141,14 @@ class Variable:
             self.addon.update_subscribers(self.flow, self._name)
             self.addon.var_value_changed.emit(self, old_val)
     
-    def set_type(self, val, silent=False):
+    def set_type(self, val_type: type | str, silent=False):
         """
-        Sets the underlying VarType using a value or a value type, e.g. 0 or int. The value type must be
+        Sets the underlying VarType using a type or its identifier. The value type must be
         registered in the Addon beforehand.
         """
-        # treat it as a value
-        val_type = type(val)
-        var_type = self.addon.var_type(val_type)
-        
-        # treat it as a value type
-        if not var_type:
-            val_type = val
-            var_type = self.addon.var_type(val_type)
-            val = None
         
         old_type = self._var_type
         self._var_type = self._addon.var_type(val_type)
-        if not self._var_type:
-            raise KeyError(f"{val_type} is not registered in the Addon!")
-        
-        self._value = val if val else self._var_type.default()
-        
         if not silent:
             self.addon.update_subscribers(self.flow, self._name)
             self.addon.var_type_changed.emit(self, old_type)
@@ -337,13 +325,20 @@ class VarsAddon(AddOn):
         return self._var_data_loaded
     
     def var_type(self, id: type | str):
+        """Retrieves the var type."""
+        if isinstance(id, type):
+            return self._var_types[id]
+        elif isinstance(id, str):
+            return self._var_type_ids[id]
+    
+    def var_type_get(self, id: type | str):
         """Retrieves the var type. Returns None if it doesn't exist"""
         if isinstance(id, type):
             return self._var_types.get(id)
         elif isinstance(id, str):
             return self._var_type_ids.get(id)
         return None
-    
+        
     def register_var_type(self, var_type: VarType):
         """
         A function that registers various data types to be valid variables.
@@ -430,13 +425,16 @@ class VarsAddon(AddOn):
         if self.var_exists(flow, var.name):
             del self.flow_variables[flow][var.name]
         
-    def create_var(self, flow: Flow, name: str, val, load_from=None, silent=False) -> Variable:
+    def create_var(self, flow: Flow, name: str, val=None, load_from=None, silent=False) -> Variable:
         """
         Creates and returns a new variable and None if the name isn't valid.
         
         Val can be the value itself or the corresponding type
         """
 
+        # if there isn't a value, create an integer
+        if not val:
+            val = 0
         print("CREATING VAR")
         if not self.var_name_valid(flow, name):
             raise ValueError(f"Name: <{name}> already exists or is not a proper python identifier")
@@ -468,10 +466,10 @@ class VarsAddon(AddOn):
         v = self.var(flow, name)
         v.set(value, silent)
     
-    def change_val_type(self, flow: Flow, name: str, val_type: type, value=None, data: dict = None, silent=False):
+    def change_val_type(self, flow: Flow, name: str, val_type: type, silent=False):
         """Changes a variables underlying variable type based on a value type"""
         v = self.var(flow, name)
-        v.set_val_type(val_type, value, data, silent)
+        v.set_type(val_type, silent)
     
     def set_var_from_data(self, flow: Flow, name: str, data: dict, silent=False):
         """Loads a variable's value with serialized data"""
