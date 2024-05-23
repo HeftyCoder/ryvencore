@@ -419,7 +419,7 @@ class IdentifiableGroups(Generic[InfoType]):
         
         return True
     
-    def remove(self, id: Identifiable):
+    def remove(self, id: Identifiable[InfoType]):
         """Removes an identifiable from its group. Deletes the group if it's empty"""
         
         id_in_dict = self.__id_dict.get(id.id)
@@ -442,12 +442,16 @@ class IdentifiableGroups(Generic[InfoType]):
         
         self.id_removed.emit(id_in_dict)
           
-    def group(self, group_id: str) -> None | Mapping[str, Identifiable]:
+    def group(self, group_id: str) -> None | Mapping[str, Identifiable[InfoType]]:
         """Retrieves a specific group. group_id must exist as a valid group."""
         
         if not group_id in self.__id_groups:
             return None
         return MappingProxyType(self.__id_groups[group_id])
+
+    def group_infos(self, group_id: str):
+        group = self.group(group_id)
+        return {identifiable.info for identifiable in group.values()}
     
     def remove_group(self, group_id: str, emit_id_removed=False) -> bool:
         """Removes a group. group_id must exist as a valid group"""

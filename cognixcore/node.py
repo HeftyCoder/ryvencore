@@ -110,6 +110,8 @@ class Node(Base, ABC):
             self._config = config
         elif self._inner_config_type:
             self._config = self._inner_config_type(self)
+        else:
+            self._config = None
             
         self.flow = flow
         self.session = flow.session
