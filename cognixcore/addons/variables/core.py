@@ -10,7 +10,7 @@ from typing import Callable, Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from ... import Node, Flow
     
-ADDON_VERSION = '0.4'
+ADDON_VERSION = '1.0'
 # TODO: replace print_err with InfoMsgs
     
 class VarType:

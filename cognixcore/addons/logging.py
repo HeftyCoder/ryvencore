@@ -1,25 +1,20 @@
-"""
-WIP
-"""
 
-from logging import Logger as PyLogger
+from logging import (
+    getLogger, 
+    Logger,
+    NOTSET,
+    DEBUG,
+    INFO,
+    WARNING,
+    ERROR,
+    CRITICAL,
+)
+from types import MappingProxyType
 
 from .base import AddOn
 from ..base import NoArgsEvent, Event
-
-class Logger(PyLogger):
-
-    def __init__(self, *args, **kwargs):
-        PyLogger.__init__(self, *args, **kwargs)
-
-        self.sig_enabled = NoArgsEvent()
-        self.sig_disabled = NoArgsEvent()  # 'disabled' is reserved
-
-    def enable(self):
-        self.sig_enabled.emit()
-
-    def disable(self):
-        self.sig_disabled.emit()
+from ..flow import Flow
+from ..node import Node
 
 
 class LoggingAddon(AddOn):
@@ -43,76 +38,81 @@ class LoggingAddon(AddOn):
     """
 
     _name = 'Logging'
-    version = '0.0.1'
-
+    version = '1.0'
+    root_logger_name = 'session'
+    
     def __init__(self):
         super().__init__()
 
-        # logger_created = Event(Logger)
+        self._loggers: dict[Flow | Node, Logger] = {}
+        self._loggers_proxy = MappingProxyType(self._loggers)
+        
+        self.flow_created = Event[Flow, Logger]()
+        self.flow_destroyed = Event[Flow, Logger]()
+        self.node_created = Event[Node, Logger]()
+        self.node_added = Event[Node, Logger]()
+        self.node_removed = Event[Node, Logger]()
 
-        self.loggers = {}   # {Node: {name: Logger}}
-
-        self.log_created = Event[Logger]()
-        # TODO: support deletion of loggers?
-
-    def new_logger(self, node, title: str) -> Logger | None:
-        """
-        Creates a new logger owned by the node, returns None if
-        one with the given name already exists.
-        """
-
-        if not self._node_is_registered(node):
-            self.loggers[node] = {}
-
-        elif title in self.loggers[node]:
-            return None
-
-        logger = Logger(name=title)
-        self.loggers[node][title] = logger
-        self.log_created.emit(logger)
-        return logger
-
-    def get(self, node, title: str) -> Logger | None:
-        """
-        Returns the logger with the given name owned by the node,
-        or None if it doesn't exist.
-        """
-
-        if not self._node_is_registered(node):
-            return None
-
-        return self.loggers[node][title]
-
-    def on_node_created(self, node):
-        if node.load_data and 'Logging' in node.load_data:
-            for title in node.load_data['Logging']['loggers']:
-                self.new_logger(node, title)
-                # in case the node already created the logger,
-                # new_logger() will have no effect
-
-    def _node_is_registered(self, node):
-        return node in self.loggers
-
-    def on_node_added(self, node):
-        if not self._node_is_registered(node):
-            return
-
-        # enable the node's loggers
-        for logger in self.loggers[node].values():
-            logger.enable()
+        self._log_level = NOTSET
+        self._root_logger = getLogger(self.root_logger_name)
+    
+    @property 
+    def log_level(self):
+        """The log level assigned to a logger at creation. Refer to python's logging module."""
+        return self._log_level
+    
+    @log_level.setter
+    def log_level(self, value: int):
+        """Sets the log level to all the currently available loggers."""
+        self._log_level = value
+        for logger in self._loggers.values():
+            logger.setLevel(value)
+            
+    @property
+    def root_looger(self):
+        return self._root_logger
+    
+    @property
+    def loggers(self):
+        return self._loggers_proxy
+    
+    @property
+    def __rn(self):
+        return self.root_logger_name
+        
+    def on_flow_created(self, flow: Flow):
+        self._loggers[flow] = logger = getLogger(f"{self.__rn}.{flow.global_id}")
+        logger.setLevel(self._log_level)
+        self.flow_created.emit(flow, logger)
+    
+    def on_flow_destroyed(self, flow: Flow):
+        logger = self._loggers[flow]
+        logger.disabled = True
+        del self._loggers[flow]
+        
+        for node in flow.nodes:
+            self._loggers[node].disabled = True
+            del self._loggers[node]
+        
+        self.flow_destroyed.emit(flow, logger)
+            
+    def on_node_created(self, node: Node):
+        
+        self._loggers[node] = logger = getLogger(f"{self.__rn}.{node.flow.global_id}.{node.global_id}")
+        logger.setLevel(self._log_level)
+        self.node_created.emit(node, logger)
+    
+    def on_node_added(self, node: Node):
+        self._loggers[node].disabled = False
+        self.node_added.emit(node, self._loggers[node])
 
     def on_node_removed(self, node):
-        if not self._node_is_registered(node):
-            return
-
-        # disable the node's loggers
-        for logger in self.loggers[node].values():
-            logger.disable()
-
-    def extend_node_data(self, node, data: dict):
-        if not self._node_is_registered(node):
-            return
-
-        data['Logging'] = {
-            'loggers': [name for name in self.loggers[node].keys()]
-        }
+        self._loggers[node].disabled = True
+        self.node_removed.emit(node, self._loggers[node])
+    
+    def on_loaded(self):
+        for flow in self.session.flows.values():
+            self.on_flow_created(flow)
+            
+            for node in flow.nodes:
+                self.on_node_created(node)

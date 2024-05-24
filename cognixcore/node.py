@@ -130,6 +130,7 @@ class Node(Base, ABC):
         self.block_updates = False
 
         self._progress = None
+        self._logger = None
         
         # events
         self.updated = Event[int]()
@@ -151,6 +152,12 @@ class Node(Base, ABC):
     def config(self, value: NodeConfig):
         """Sets this node's configuration"""
         self.set_config(value, False)
+    
+    @property
+    def logger(self):
+        if not self._logger:
+            self._logger = self.flow.session.logg_addon.loggers[self]
+        return self._logger
     
     @property
     def vars_addon(self):

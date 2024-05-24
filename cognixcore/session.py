@@ -4,6 +4,7 @@ from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
 from .addons.base import AddOn, AddonType
+from .addons.builtin import VarsAddon, LoggingAddon
 from .flow_player import (
     GraphPlayer,
     GraphState,
@@ -17,7 +18,7 @@ from typing import Callable
 from importlib import import_module
 from types import MappingProxyType
 from collections.abc import Iterable
-
+from logging import Logger
 
 class Session(Base):
     """
@@ -35,7 +36,7 @@ class Session(Base):
     def __init__(
             self,
             gui: bool = False,
-            load_addons: bool = False,
+            load_optional_addons: bool = False,
     ):
         Base.__init__(self)
 
@@ -60,8 +61,12 @@ class Session(Base):
         # node group
         self._node_type_groups = IdentifiableGroups[type[Node]]()
         
-        # Load built-in addons
-        if load_addons:
+        # Load Variables and Logging Addons
+        self.register_addon(VarsAddon)
+        self.register_addon(LoggingAddon)
+        
+        # Load optional built-in addons
+        if load_optional_addons:
             from .addons.builtin import built_in_addons
             for addon_type in built_in_addons:
                 self.register_addon(addon_type)
@@ -71,7 +76,19 @@ class Session(Base):
         self._graph_executor = ThreadPoolExecutor()
         self._flow_to_future: dict[str, Future] = {}
         self._rest_api = SessionServer(self)
-        
+    
+    @property
+    def vars_addon(self):
+        return self.addon(VarsAddon)
+    
+    @property
+    def logg_addon(self):
+        return self.addon(LoggingAddon)
+    
+    @property
+    def logger(self) -> Logger:
+        return self.addon(LoggingAddon).root_looger
+    
     @property
     def node_types(self):
         return self._node_type_groups.infos

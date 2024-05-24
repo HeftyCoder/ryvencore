@@ -82,6 +82,14 @@ class AddOn(Base):
         flow.node_created.unsub(self.on_node_created)
         flow.node_added.unsub(self.on_node_added)
         flow.node_removed.unsub(self.on_node_removed)
+    
+    def on_loaded(self):
+        """
+        *VIRTUAL*
+        
+        Called when an addon is loaded from data. This is
+        after the flows and nodes have been loaded.
+        """
 
     def on_flow_created(self, flow: Flow):
         """
@@ -98,6 +106,13 @@ class AddOn(Base):
         Called when a flow is destroyed.
         """
         pass
+    
+    def on_flow_renamed(self, flow: Flow):
+        """
+        *VIRTUAL*
+        
+        Called when a flow is renamed
+        """
 
     def on_node_created(self, node: Node):
         """
@@ -173,6 +188,7 @@ class AddOn(Base):
         Loads the data dict generated in :code:`AddOn.data()`.
         """
         self.set_state(data['custom state'], data['version'])
+        self.on_loaded()
 
 
 AddonType = TypeVar('AddonType', bound=AddOn)

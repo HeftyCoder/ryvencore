@@ -96,6 +96,7 @@ from .port import NodeOutput, NodeInput, check_valid_conn
 from .rc import FlowAlg, ConnValidType
 from .utils import *
 from typing import TYPE_CHECKING
+from logging import Logger
 
 if TYPE_CHECKING:
     from .session import Session
@@ -150,7 +151,15 @@ class Flow(Base):
 
         self.alg_mode = FlowAlg.DATA
         self.executor: FlowExecutor = executor_from_flow_alg(self.alg_mode)(self)
+        
+        self._logger: Logger = None
 
+    @property
+    def logger(self):
+        if not self._logger:
+            self._logger = self.session.logg_addon.loggers[self]
+        return self._logger
+    
     @property
     def player(self):
         return self._player
@@ -260,9 +269,10 @@ class Flow(Base):
         if data is not None:
             node.load(data)
 
-        self.add_node(node)
         if not silent:
             self.node_created.emit(node)
+        self.add_node(node, silent)
+        
         return node
 
 
