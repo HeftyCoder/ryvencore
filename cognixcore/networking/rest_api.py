@@ -3,7 +3,8 @@ from json import dumps, loads
 
 from threading import Thread
 from ..addons.variables import VarsAddon
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException # FastAPI is wrapped form FastAPIOffline
+from fastapi_offline import FastAPIOffline # replaces FastAPI for offline access to docs
 from uvicorn import Server, Config
 from http import HTTPStatus
 
@@ -25,7 +26,7 @@ class RestAPI:
     def __init__(self, session: Session):
         self._session = session
         self._vars_addon: VarsAddon = self.session.addon(VarsAddon)
-        self._app = FastAPI()
+        self._app = FastAPIOffline()
     
     @property
     def session(self):

@@ -253,11 +253,13 @@ class Session(Base):
 
         if self.new_flow_title_valid(title):
             del self._flows[flow.title]
+            old_title = flow.title
             flow.title = title
             self._flows[title] = flow
             success = True
             self.flow_renamed.emit(flow, title)
-
+            flow.renamed.emit(old_title, title)
+            
         return success
 
 

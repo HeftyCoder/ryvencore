@@ -1,5 +1,6 @@
 packaging
 beartype
 fastapi
+fastapi-offline
 traits
 traitsui

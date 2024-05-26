@@ -117,7 +117,7 @@ class Flow(Base):
     Forces the flow to accept a specific type of base node.
     """
     
-    def __init__(self, session: 'Session', title: str):
+    def __init__(self, session: Session, title: str):
         Base.__init__(self)
 
         # player - will be set through the session
@@ -128,6 +128,7 @@ class Flow(Base):
         self.node_created = Event[Node]()
         self.connection_added = Event[tuple[NodeOutput, NodeInput]]()    
         self.connection_removed = Event[tuple[NodeOutput, NodeInput]]()     
+        self.renamed = Event[str, str]()
 
         self.connection_request_valid = Event[ConnValidType]()
         self.nodes_created_from_data = Event[list]()
