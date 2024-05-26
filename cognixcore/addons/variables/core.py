@@ -154,7 +154,10 @@ class Variable:
     
     def set_var_type(self, var_type: VarType, silent=False):
         """Sets the VarType of this Variable"""
-       
+
+        if not var_type:
+            raise ValueError(f"Cannot register {None} type!")
+        
         old_type = self._var_type
         if not var_type.val_type in self._addon.var_types:
             raise ValueError(f"{var_type.val_type} has not been registered!")
