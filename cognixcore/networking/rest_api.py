@@ -1,21 +1,21 @@
 from __future__ import annotations
 from json import dumps, loads
 
-from threading import Thread
+from threading import Thread, Event
 from ..addons.variables import VarsAddon
 from fastapi import HTTPException # FastAPI is wrapped form FastAPIOffline
 from fastapi_offline import FastAPIOffline # replaces FastAPI for offline access to docs
 from uvicorn import Server, Config
 from http import HTTPStatus
+from time import sleep
 
 from ..flow_player import GraphState, GraphActionResponse
 from ..models import FlowModel, VarModel
 
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..session import Session
-    from ..flow import Flow
 
 class RestAPI:
     """Handles FastAPI app creation"""
@@ -223,31 +223,61 @@ class SessionServer:
         self.run_task = None
         self._run_thread: Thread = None
         self._server = None
-        """Populated only if the REST service starts in another thread"""
+        self._running = False
+        self._port = -1
 
+    @property
+    def running(self):
+        """
+        Indicates whether the server is running.
+        
+        Due to the asynchronous nature of the server, this value might
+        not always be synchronized.
+        """
+        return self._running
+    
+    @property
+    def port(self):
+        return self._port
+    
     def run(self, 
             host: str | None = None, 
             port: int | None = None,
-            debug: bool | None = None,
-            load_dotenv: bool = True,
             on_other_thread: bool = False,
-            **options: Any
+            wait_time_if_thread = 0
     ):
+        if self._running:
+            raise RuntimeError('Server already running!!')
+        
         if not host:
             host = '127.0.0.1'
         
         self._server = Server(Config(self.api.app, host=host, port=port))
-        def _run():
-            self._server.run()
+        self._port = port
         
-        print(f'PORT for Rest API: {port}')
+        error_event = Event()
+        def _run():
+            try:    
+                self._running = True
+                self._server.run()
+            except:
+                self._running = False
+                error_event.set()
+                raise
+            
         if not on_other_thread:
             _run()
         else:
             self._run_thread = Thread(target=_run)
             self._run_thread.setDaemon(True)
             self._run_thread.start()
+            if wait_time_if_thread > 0:
+                sleep(wait_time_if_thread)
+            if error_event.is_set():
+                raise RuntimeError(f"Something went wrong with the REST API. The port {port} is probably taken!")
     
     def shutdown(self):
+        self._port = -1
+        self._running = False
         if self._server:
             self._server.should_exit = True
