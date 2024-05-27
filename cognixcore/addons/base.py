@@ -32,6 +32,7 @@ See :code:`ryvencore.addons` for examples.
 
 from __future__ import annotations
 from ..base import Base
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from ..session import Session
@@ -75,6 +76,7 @@ class AddOn(Base):
         flow.node_created.sub(self.on_node_created, nice=-4)
         flow.node_added.sub(self.on_node_added, nice=-4)
         flow.node_removed.sub(self.on_node_removed, nice=-4)
+        flow.nodes_created_from_data.sub(self.on_nodes_loaded, nice=-4)
     
     def disconnect_flow_events(self, flow: Flow):
         """Disconnects flow events to the add-on"""
@@ -82,6 +84,7 @@ class AddOn(Base):
         flow.node_created.unsub(self.on_node_created)
         flow.node_added.unsub(self.on_node_added)
         flow.node_removed.unsub(self.on_node_removed)
+        flow.nodes_created_from_data.unsub(self.on_nodes_loaded)
     
     def on_loaded(self):
         """
@@ -129,6 +132,16 @@ class AddOn(Base):
         """
         pass
 
+    def on_nodes_loaded(self, nodes: Sequence[Node]):
+        """
+        *VIRTUAL*
+
+        Called when a node is loaded and fully initialized
+        from data. The node has been added to the flow, however
+        the place_event has not been called yet.
+        """
+        pass
+        
     def on_node_added(self, node: Node):
         """
         *VIRTUAL*

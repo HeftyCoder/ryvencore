@@ -183,12 +183,6 @@ class Node(Base, ABC):
         self._config = value
         if not silent:
             self.config_changed.emit(self._config)
-            
-    def initialize(self):
-        """
-        Sets up the node ports.
-        """
-        self._setup_ports()
 
     def _setup_ports(self, inputs_data=None, outputs_data=None):
 

@@ -10,6 +10,7 @@ from logging import (
     CRITICAL,
 )
 from types import MappingProxyType
+from typing import Sequence
 
 from .base import AddOn
 from ..base import NoArgsEvent, Event
@@ -101,6 +102,10 @@ class LoggingAddon(AddOn):
         self._loggers[node] = logger = getLogger(f"{self.__rn}.{node.flow.global_id}.{node.global_id}")
         logger.setLevel(self._log_level)
         self.node_created.emit(node, logger)
+    
+    def on_nodes_loaded(self, nodes: Sequence[Node]):
+        for node in nodes:
+            self.on_node_created(node)
     
     def on_node_added(self, node: Node):
         self._loggers[node].disabled = False

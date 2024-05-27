@@ -131,8 +131,8 @@ class Flow(Base):
         self.renamed = Event[str, str]()
 
         self.connection_request_valid = Event[ConnValidType]()
-        self.nodes_created_from_data = Event[list]()
-        self.connections_created_from_data = Event[list]()
+        self.nodes_created_from_data = Event[list[Node]]()
+        self.connections_created_from_data = Event[list[tuple[NodeOutput, NodeInput]]]()
 
         self.algorithm_mode_changed = Event[str]()
 
@@ -265,7 +265,7 @@ class Flow(Base):
         node.input_removed.sub(lambda n, i, inp: self.remove_node_input(n, inp), nice=-5)
         node.output_removed.sub(lambda n, i, out: self.remove_node_output(n, out), nice=-5)
         # initialize node ports
-        node.initialize()
+        node._setup_ports()
         # load node
         if data is not None:
             node.load(data)
@@ -365,7 +365,7 @@ class Flow(Base):
 
 
     def _connect_nodes_from_data(self, nodes: list[Node], data: list):
-        connections = []
+        connections: list[tuple[NodeOutput, NodeInput]] = []
 
         for c in data:
 
