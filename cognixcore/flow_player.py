@@ -202,6 +202,11 @@ class GraphPlayer(ABC):
         return self._graph_time
     
     @property
+    def delta_time(self):
+        """Convenience method for returning delta-time"""
+        return self._graph_time.delta_time
+    
+    @property
     def graph_events(self):
         """Events for this graph"""
         return self._events
@@ -314,8 +319,8 @@ class FlowPlayer(GraphPlayer):
             frame_nodes = self.__gather_frame_nodes()
             frame_successors.clear()
             for node in frame_nodes:
-                node.frame_update()
-                frame_successors.update(self.flow.node_successors[node])
+                if node.frame_update():
+                    frame_successors.update(self.flow.node_successors[node])
             self.__update(list(frame_successors))
             
             wait_time = self._graph_time.frame_dur() - (time.perf_counter() - start_time)

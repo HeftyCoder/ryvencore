@@ -154,6 +154,10 @@ class Node(Base, ABC):
         self.set_config(value, False)
     
     @property
+    def player(self):
+        return self.flow.player
+    
+    @property
     def logger(self):
         if not self._logger:
             self._logger = self.flow.session.logg_addon.loggers[self]
@@ -707,8 +711,10 @@ class FrameNode(Node):
     # Frame Updates
     def frame_update(self):
         """Wraps the frame_update_event with internal calls."""
-        if self.frame_update_event():
+        result = self.frame_update_event()
+        if result:
             self.updating.emit(-1)
+        return result
     
     @abstractmethod
     def frame_update_event(self) -> bool:
