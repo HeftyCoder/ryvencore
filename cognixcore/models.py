@@ -51,6 +51,7 @@ class NodeModel(CognixModel):
 class FlowModel(CognixModel):
     """A model representing a Flow."""
     #currently does not include the output data
+    title: str
     alg_mode: str = Field(validation_alias='algorithm mode')
     nodes: list[NodeModel]
     connections: list[ConnectionModel]

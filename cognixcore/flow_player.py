@@ -11,6 +11,7 @@ from .node import (
 )
 
 from .flow import Flow
+from .flow_executor import ManualFlow
 import time
 import traceback
 
@@ -240,10 +241,28 @@ class FlowPlayer(GraphPlayer):
     
     def __init__(self, frames: int = 35):
         super().__init__(frames)
-        self._frame_nodes: list[FrameNode] = []
         self._nodes: list[Node] = []
+        """All the nodes in the graph"""
+        self._root_nodes: list[Node] = []
+        """The starting nodes that don't have any inputs connected"""
+        self._frame_nodes: list[FrameNode] = []
+        """All the frame nodes in the graph"""
         self._stop_flag = False
+        
+        self.executor = ManualFlow(self.flow)
+        self._old_executor = None
     
+    @property
+    def flow(self):
+        return self._flow
+    
+    @flow.setter
+    def flow(self, value: Flow):
+        if self._flow:
+            self.stop()
+        self._flow = value
+        self.executor.flow = self._flow
+        
     def play(self):
         try:
             self.__play()
@@ -263,17 +282,23 @@ class FlowPlayer(GraphPlayer):
         self.__gather_nodes()
         self._events._invoke_params(GraphState.STOPPED, GraphState.PLAYING)
         
-        for node in self._nodes:
-            node.reset()
+        self._old_executor = self.flow.executor
+        self.flow.executor = self.executor
         
+        # all the nodes are first initialized
+        # this could be done in an async way in 
+        # a later revision
         for node in self._nodes:
-            node.start()
+            node.init()
+        
+        # update all the root nodes
+        self.__update(self._root_nodes)
         
         if not self._frame_nodes:
             self.__on_stop()
-            self._state = GraphState.STOPPED
             return
         
+        frame_successors: set[Node] = set()
         while True:
             if self._stop_flag:
                 break
@@ -281,16 +306,23 @@ class FlowPlayer(GraphPlayer):
                 time.sleep(self._graph_time.frame_dur())
                 continue
             
+            # time start
             self._graph_time._frame_count += 1 # current frame
             start_time = time.perf_counter()
-            for node in self.__gather_frame_nodes():
+            
+            # frame update - these are our roots each frame
+            frame_nodes = self.__gather_frame_nodes()
+            frame_successors.clear()
+            for node in frame_nodes:
                 node.frame_update()
+                frame_successors.update(self.flow.node_successors[node])
+            self.__update(list(frame_successors))
             
             wait_time = self._graph_time.frame_dur() - (time.perf_counter() - start_time)
             if wait_time > 0:
                 time.sleep(wait_time)
             
-            # time info
+            # time end
             delta_time = time.perf_counter() - start_time
             self._graph_time._set_delta_time(delta_time)
                 
@@ -312,15 +344,38 @@ class FlowPlayer(GraphPlayer):
         if self._state != GraphState.STOPPED:
             self._stop_flag = True
     
+    def __update(self, root_nodes: list[Node]):
+        """
+        Updates with nodes as the root
+        
+        Essentially as BFS update
+        """
+        successors: set[Node] = set()
+        while root_nodes:
+            successors.clear()
+            for node in root_nodes:
+                for i, inp in enumerate(node._inputs):
+                    if node.input_connected(inp):
+                        node.update(i)
+                successors.update(self.flow.node_successors[node])
+            root_nodes = list(successors)
+        
     def __gather_nodes(self):
+        """Gathers all the available nodes"""
         self._frame_nodes.clear()
         self._nodes.clear()
+        self._root_nodes.clear()
         
         for node in self._flow.nodes:
             if not isinstance(node, Node):
                 continue
             self._nodes.append(node)
-            if isinstance(node, FrameNode) and not node.is_finished:
+            # if the node doesn't have any inputs connected
+            # but does have outputs, it's a root node
+            if not node.any_input_connected() and node.any_output_connected():
+                self._root_nodes.append(node)
+            
+            if isinstance(node, FrameNode):
                 self._frame_nodes.append(node)
     
     def __gather_frame_nodes(self):
@@ -336,3 +391,6 @@ class FlowPlayer(GraphPlayer):
             node.stop()
         self._events._invoke_params(old_state, GraphState.STOPPED)
         self._graph_time.reset()
+        if self._old_executor:
+            self.flow.executor = self._old_executor
+            self._old_executor = None

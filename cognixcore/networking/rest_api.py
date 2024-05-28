@@ -142,6 +142,7 @@ class RestAPI:
             """Retrieves a flow from the session"""
             flow = self.get_flow(flow_name)
             flow_data = flow.data()
+            print(flow_data)
             return FlowModel(**flow_data)
         
         @self.app.get("/session/flows/{flow_name}/play/")
@@ -244,7 +245,8 @@ class SessionServer:
             host: str | None = None, 
             port: int | None = None,
             on_other_thread: bool = False,
-            wait_time_if_thread = 0
+            wait_time_if_thread = 0,
+            bypass_uvicorn_log = False
     ):
         if self._running:
             raise RuntimeError('Server already running!!')
@@ -252,7 +254,12 @@ class SessionServer:
         if not host:
             host = '127.0.0.1'
         
-        self._server = Server(Config(self.api.app, host=host, port=port))
+        if bypass_uvicorn_log:
+            config = Config(self.api.app, host=host, port=port, log_config=None)
+            config.logger = self.session.logger
+        else:
+            config = Config(self.api.app, host=host, port=port)
+        self._server = Server(config)
         self._port = port
         
         error_event = Event()

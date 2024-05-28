@@ -3,6 +3,7 @@ The flow executors are responsible for executing the flow. They have access to
 the flow as well as the nodes' internals and are able to perform optimizations.
 """
 from __future__ import annotations
+
 from .port import NodeOutput, NodeInput
 from .rc import FlowAlg
 
@@ -26,9 +27,15 @@ class FlowExecutor:
     def __init__(self, flow: Flow):
         self.flow = flow
         self.flow_changed = True
-        self.graph = self.flow.graph_adj
-        self.graph_rev = self.flow.graph_adj_rev
 
+    @property
+    def graph(self):
+        return self.flow.graph_adj
+    
+    @property
+    def graph_rev(self):
+        return self.flow.graph_adj_rev
+    
     # Node.update() =>
     def update_node(self, node: Node, inp: int):
         pass
@@ -51,7 +58,36 @@ class FlowExecutor:
     def conn_removed(self, out: NodeOutput, inp: NodeInput, silent=False):
         pass
 
+class ManualFlow(FlowExecutor):
+    """
+    An executor that doesn't propagate any data between nodes. Doesn't
+    handle the exec_output.
+    
+    To be used for manual evaluation of the whole flow graph.
+    """
+    
+    def update_node(self, node: Node, inp: int):
+        try:
+            node.update_event(inp)
+        except Exception as e:
+            node.update_err(e)
+    
+    def input(self, node: Node, index: int):
+        inp = node._inputs[index]
+        conn_out = self.graph_rev[inp]
 
+        if conn_out:
+            return conn_out.val
+        else:
+            return inp.default
+    
+    def set_output(self, node: Node, index: int, data):
+        out = node._outputs[index]
+        if not out.type_ == 'data':
+            return
+        out.val = data
+        
+        
 class DataFlowNaive(FlowExecutor):
     """
     The naive implementation of data-flow execution. Naive meaning setting a node output
@@ -355,11 +391,19 @@ class ExecFlowNaive(FlowExecutor):
         for inp in self.graph[node._outputs[index]]:
             inp.node.update(inp.node._inputs.index(inp))
 
+__alg_to_exec: dict[FlowAlg: type[FlowExecutor]] ={
+    FlowAlg.MANUAL: ManualFlow,
+    FlowAlg.DATA: DataFlowNaive,
+    FlowAlg.DATA_OPT: DataFlowOptimized,
+    FlowAlg.EXEC: ExecFlowNaive
+}
+
+__exec_to_alg: dict[type[FlowExecutor], FlowAlg] = {
+    exec_type: alg for alg, exec_type in __alg_to_exec.items()
+}
 
 def executor_from_flow_alg(algorithm: FlowAlg):
-    if algorithm == FlowAlg.DATA:
-        return DataFlowNaive
-    if algorithm == FlowAlg.DATA_OPT:
-        return DataFlowOptimized
-    if algorithm == FlowAlg.EXEC:
-        return ExecFlowNaive
+    return __alg_to_exec[algorithm]
+
+def flow_alg_from_executor(exec_type: type[FlowExecutor]):
+    return __exec_to_alg[exec_type]

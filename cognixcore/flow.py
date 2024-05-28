@@ -90,7 +90,7 @@ Assumptions:
 """
 from __future__ import annotations
 from .base import Base, Event, find_identifiable
-from .flow_executor import FlowExecutor, executor_from_flow_alg
+from .flow_executor import FlowExecutor, executor_from_flow_alg, flow_alg_from_executor
 from .node import Node, NodeType
 from .port import NodeOutput, NodeInput, check_valid_conn
 from .rc import FlowAlg, ConnValidType
@@ -150,11 +150,32 @@ class Flow(Base):
         self.graph_adj: dict[NodeOutput, list[NodeInput]] = {}         # directed adjacency list relating node ports
         self.graph_adj_rev: dict[NodeInput, NodeOutput] = {}     # reverse adjacency; reverse of graph_adj
 
-        self.alg_mode = FlowAlg.DATA
-        self.executor: FlowExecutor = executor_from_flow_alg(self.alg_mode)(self)
+        self._executor: FlowExecutor = executor_from_flow_alg(FlowAlg.DATA)(self)
         
         self._logger: Logger = None
 
+    @property
+    def algorithm_mode(self) -> str:
+        """
+        The current algorithm mode of the flow as string.
+        
+        One-to-one with an executor type.
+        """
+        return FlowAlg.str(flow_alg_from_executor(type(self._executor)))
+    
+    @algorithm_mode.setter
+    def algorithm_mode(self, value: FlowAlg | str):
+        self.set_algorithm_mode(value)
+        
+    @property
+    def executor(self):
+        """Returns the current executor of the Flow"""
+        return self._executor
+    
+    @executor.setter
+    def executor(self, value: FlowExecutor):
+        self.set_executor(value)
+    
     @property
     def logger(self):
         if not self._logger:
@@ -179,7 +200,10 @@ class Flow(Base):
         self.load_data = data
 
         # set algorithm mode
-        self.alg_mode = FlowAlg.from_str(data['algorithm mode'])
+        self.set_algorithm_mode(
+            FlowAlg.from_str(data['algorithm mode']),
+            False
+        )
 
         # build flow
         self.load_components(data['nodes'], data['connections'])
@@ -493,7 +517,7 @@ class Flow(Base):
         self._flow_changed()
 
 
-        self.executor.conn_added(out, inp, silent=silent)
+        self._executor.conn_added(out, inp, silent=silent)
 
         self.connection_added.emit((out, inp))
 
@@ -511,7 +535,7 @@ class Flow(Base):
         self.node_successors[out.node].remove(inp.node)
         self._flow_changed()
 
-        self.executor.conn_removed(out, inp, silent=silent)
+        self._executor.conn_removed(out, inp, silent=silent)
 #
         self.connection_removed.emit((out, inp))
 
@@ -530,34 +554,36 @@ class Flow(Base):
         """
         return self.graph_adj_rev[inp]
 
-
-    def algorithm_mode(self) -> str:
+    def set_executor(self, executor: FlowExecutor, silent=False):
         """
-        Returns the current algorithm mode of the flow as string.
+        Sets the flow executor
+        """
+        if not isinstance(executor, FlowExecutor):
+            raise ValueError(f'Executor must be of type {FlowExecutor}, but was of type {type(executor)}')
+        
+        self._executor = executor
+        if not silent:
+            self.algorithm_mode_changed.emit(self.algorithm_mode)
+            
+    def set_algorithm_mode(self, mode: FlowAlg | str, silent=False):
+        """
+        Sets the algorithm mode of the flow, possible values
+        are 'manual', 'data', 'data opt', and 'exec'.
+        
+        Internally sets the corresponding executor.
         """
 
-        return FlowAlg.str(self.alg_mode)
-
-
-    def set_algorithm_mode(self, mode: str):
-        """
-        Sets the algorithm mode of the flow from a string, possible values
-        are 'data', 'data opt', and 'exec'.
-        """
-
-        new_alg_mode = FlowAlg.from_str(mode)
-        if new_alg_mode is None:
+        if isinstance(mode, str):
+            mode = FlowAlg.from_str(mode)
+        if mode is None:
             return False
 
-        self.executor = executor_from_flow_alg(new_alg_mode)(self)
-        self.alg_mode = new_alg_mode
-        self.algorithm_mode_changed.emit(self.algorithm_mode())
-
+        self.set_executor(executor_from_flow_alg(mode)(self), silent)
         return True
 
 
     def _flow_changed(self):
-        self.executor.flow_changed = True
+        self._executor.flow_changed = True
 
 
     def data(self) -> dict:
@@ -567,7 +593,7 @@ class Flow(Base):
         """
         return {
             **super().data(),
-            'algorithm mode': FlowAlg.str(self.alg_mode),
+            'algorithm mode': flow_alg_from_executor(type(self._executor)) if self._executor else FlowAlg.DATA,
             'nodes': self._gen_nodes_data(self.nodes),
             'connections': self._gen_conns_data(self.nodes),
             # 'output data': self._gen_output_data(self.nodes),

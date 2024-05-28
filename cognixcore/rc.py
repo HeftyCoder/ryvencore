@@ -8,16 +8,17 @@ if TYPE_CHECKING:
     from .port import NodeOutput, NodeInput
 
 class FlowAlg(IntEnum):
-    """Used for performance reasons"""
+    """Used for serialization purposes"""
 
+    MANUAL = 0
     DATA = 1
     EXEC = 2
     DATA_OPT = 3
 
     @staticmethod
     def str(mode):
-        # not using __str__ here because FlowAlg only serves as an enum,
-        # so there won't be any objects instantiated
+        if mode == FlowAlg.MANUAL:
+            return 'manual'
         if mode == FlowAlg.DATA:
             return 'data'
         elif mode == FlowAlg.EXEC:
@@ -29,7 +30,9 @@ class FlowAlg(IntEnum):
 
     @staticmethod
     def from_str(mode):
-        if mode == 'data':
+        if mode == 'manual':
+            return FlowAlg.MANUAL
+        elif mode == 'data':
             return FlowAlg.DATA
         elif mode == 'exec':
             return FlowAlg.EXEC

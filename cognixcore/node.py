@@ -324,22 +324,13 @@ class Node(Base, ABC):
 
         pass
     
-    def reset(self):
+    def init(self):
         """
         VIRTUAL
         
-        This is called when the node is reset. Typically happens when the GraphPlayer
-        enters GraphState.Playing state. Implement any initialization here.
+        Invoked when the a flow player has started. In a later revision,
+        will be invoked when placed inside a flow in interactive mode.
         """
-        pass
-
-    def start(self):
-        """
-        VIRTUAL
-        
-        Invoked when the graph player is started
-        """
-        pass
     
     def pause(self):
         """
@@ -421,15 +412,34 @@ class Node(Base, ABC):
 
     #   PORTS
 
-    def input_connected(self, inp: int):
-        if len(self._inputs) <= inp:
-            return False
-        return self.flow.connected_output(self._inputs[inp]) is not None
+    def any_port_connected(self):
+        return self.any_input_connected() or self.any_output_connected()
     
-    def output_connected(self, out: int):
-        if len(self._outputs) <= out:
-            return False
-        return len(self.flow.connected_inputs(self._outputs[out])) > 0
+    def any_input_connected(self):
+        for inp in self._inputs:
+            if self.flow.connected_output(inp):
+                return True
+        return False
+    
+    def any_output_connected(self):
+        for out in self._outputs:
+            if self.flow.connected_inputs(out):
+                return True
+        return False
+    
+    def input_connected(self, inp: int | NodeInput):
+        if isinstance(inp, int):
+            if len(self._inputs) <= inp:
+                return False
+            inp = self._inputs[inp]
+        return self.flow.connected_output(inp) is not None
+    
+    def output_connected(self, out: int | NodeOutput):
+        if isinstance(out, int):
+            if len(self._outputs) <= out:
+                return False
+            out = self._outputs[out]
+        return len(self.flow.connected_inputs(out)) > 0
     
     def create_input(self, port_info: PortConfig = None, load_from = None, insert: int = None):
         """
