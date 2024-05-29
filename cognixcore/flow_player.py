@@ -319,7 +319,8 @@ class FlowPlayer(GraphPlayer):
             frame_nodes = self.__gather_frame_nodes()
             frame_successors.clear()
             for node in frame_nodes:
-                if node.frame_update():
+                node.frame_update()
+                if self.executor.has_updated_outputs(node):
                     frame_successors.update(self.flow.node_successors[node])
             self.__update(list(frame_successors))
             
@@ -360,10 +361,11 @@ class FlowPlayer(GraphPlayer):
             successors.clear()
             for node in root_nodes:
                 for i, inp in enumerate(node._inputs):
-                    if node.input_connected(inp):
+                    if self.executor.should_input_update(inp):
                         node.update(i)
                 successors.update(self.flow.node_successors[node])
             root_nodes = list(successors)
+        self.executor.outputs_updated.clear()
         
     def __gather_nodes(self):
         """Gathers all the available nodes"""

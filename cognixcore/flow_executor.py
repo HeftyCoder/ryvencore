@@ -4,6 +4,8 @@ the flow as well as the nodes' internals and are able to perform optimizations.
 """
 from __future__ import annotations
 
+from cognixcore.flow import Flow
+
 from .port import NodeOutput, NodeInput
 from .rc import FlowAlg
 
@@ -66,6 +68,10 @@ class ManualFlow(FlowExecutor):
     To be used for manual evaluation of the whole flow graph.
     """
     
+    def __init__(self, flow: Flow):
+        super().__init__(flow)
+        self.outputs_updated: set[NodeOutput] = {}
+        
     def update_node(self, node: Node, inp: int):
         try:
             node.update_event(inp)
@@ -86,7 +92,17 @@ class ManualFlow(FlowExecutor):
         if not out.type_ == 'data':
             return
         out.val = data
-        
+        self.outputs_updated.add(out)
+    
+    def should_input_update(self, inp: NodeInput):
+        out = self.flow.connected_output(inp)
+        return out in self.outputs_updated
+    
+    def has_updated_outputs(self, node: Node):
+        for out in node._outputs:
+            if out in self.outputs_updated:
+                return True
+        return False
         
 class DataFlowNaive(FlowExecutor):
     """
