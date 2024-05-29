@@ -4,8 +4,6 @@ the flow as well as the nodes' internals and are able to perform optimizations.
 """
 from __future__ import annotations
 
-from cognixcore.flow import Flow
-
 from .port import NodeOutput, NodeInput
 from .rc import FlowAlg
 
