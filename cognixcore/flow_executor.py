@@ -68,7 +68,7 @@ class ManualFlow(FlowExecutor):
     
     def __init__(self, flow: Flow):
         super().__init__(flow)
-        self.outputs_updated: set[NodeOutput] = {}
+        self.outputs_updated: set[NodeOutput] = set()
         
     def update_node(self, node: Node, inp: int):
         try:
