@@ -101,6 +101,9 @@ class ManualFlow(FlowExecutor):
             if out in self.outputs_updated:
                 return True
         return False
+
+    def clear_updates(self):
+        self.outputs_updated.clear()
         
 class DataFlowNaive(FlowExecutor):
     """

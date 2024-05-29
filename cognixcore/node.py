@@ -711,19 +711,13 @@ class FrameNode(Node):
     # Frame Updates
     def frame_update(self):
         """Wraps the frame_update_event with internal calls."""
-        result = self.frame_update_event()
-        if result:
-            self.updating.emit(-1)
-        return result
-    
+        self.frame_update_event()
+        self.updating.emit(-1)
+        
     @abstractmethod
-    def frame_update_event(self) -> bool:
+    def frame_update_event(self):
         """Called on every frame. Data might have been passed from other nodes"""
         pass
-    
-    def reset(self):
-        self._is_finished = False
-        return super().reset()
 
 def get_node_classes(modname: str, to_fill: list | None = None, base_type: type = None):
     """Returns a list of node types defined in the current module that are not abstract"""

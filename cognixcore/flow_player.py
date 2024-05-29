@@ -175,7 +175,7 @@ class GraphPlayer(ABC):
     A player is a class that handles the life-time of a node program.
     """
     
-    def __init__(self, frames: int = 30):
+    def __init__(self, frames: int = 5):
         super().__init__()
         # constructing
         self._flow = None
@@ -244,7 +244,7 @@ class GraphPlayer(ABC):
 class FlowPlayer(GraphPlayer):
     """The default implementation of a Graph Player in CogniX"""
     
-    def __init__(self, frames: int = 35):
+    def __init__(self, frames: int = 30):
         super().__init__(frames)
         self._nodes: list[Node] = []
         """All the nodes in the graph"""
@@ -289,6 +289,7 @@ class FlowPlayer(GraphPlayer):
         
         self._old_executor = self.flow.executor
         self.flow.executor = self.executor
+        self.executor.clear_updates()
         
         # all the nodes are first initialized
         # this could be done in an async way in 
@@ -365,7 +366,7 @@ class FlowPlayer(GraphPlayer):
                         node.update(i)
                 successors.update(self.flow.node_successors[node])
             root_nodes = list(successors)
-        self.executor.outputs_updated.clear()
+        self.executor.clear_updates()
         
     def __gather_nodes(self):
         """Gathers all the available nodes"""

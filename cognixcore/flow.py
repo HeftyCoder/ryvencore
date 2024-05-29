@@ -134,7 +134,7 @@ class Flow(Base):
         self.nodes_created_from_data = Event[list[Node]]()
         self.connections_created_from_data = Event[list[tuple[NodeOutput, NodeInput]]]()
 
-        self.algorithm_mode_changed = Event[str]()
+        self.algorithm_mode_changed = Event[FlowAlg]()
 
         # connect events to add-ons
         for addon in session.addons.values():
@@ -155,13 +155,13 @@ class Flow(Base):
         self._logger: Logger = None
 
     @property
-    def algorithm_mode(self) -> str:
+    def algorithm_mode(self) -> FlowAlg:
         """
-        The current algorithm mode of the flow as string.
+        The current algorithm mode of the flow as an enum.
         
         One-to-one with an executor type.
         """
-        return FlowAlg.str(flow_alg_from_executor(type(self._executor)))
+        return flow_alg_from_executor(type(self._executor))
     
     @algorithm_mode.setter
     def algorithm_mode(self, value: FlowAlg | str):
@@ -561,8 +561,9 @@ class Flow(Base):
         if not isinstance(executor, FlowExecutor):
             raise ValueError(f'Executor must be of type {FlowExecutor}, but was of type {type(executor)}')
         
+        prev_alg = self.algorithm_mode
         self._executor = executor
-        if not silent:
+        if not silent and prev_alg != self.algorithm_mode:
             self.algorithm_mode_changed.emit(self.algorithm_mode)
             
     def set_algorithm_mode(self, mode: FlowAlg | str, silent=False):
@@ -575,7 +576,7 @@ class Flow(Base):
 
         if isinstance(mode, str):
             mode = FlowAlg.from_str(mode)
-        if mode is None:
+        if mode is None or mode == self.algorithm_mode:
             return False
 
         self.set_executor(executor_from_flow_alg(mode)(self), silent)
