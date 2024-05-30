@@ -7,7 +7,7 @@ from __future__ import annotations
 from .port import NodeOutput, NodeInput
 from .rc import FlowAlg
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .flow import Flow, Node
 
@@ -41,7 +41,7 @@ class FlowExecutor:
         pass
 
     # Node.input() =>
-    def input(self, node: Node, index: int):
+    def input(self, node: Node, index: int) -> Any:
         pass
 
     # Node.set_output_val() =>
