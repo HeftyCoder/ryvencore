@@ -1,4 +1,5 @@
 from traits.api import *
+from traits.api import NoDefaultSpecified
 from traits.observation.expression import ObserverExpression, trait, anytrait
 from traits.trait_base import not_false, not_event
 from traits.observation._trait_change_event import TraitChangeEvent
@@ -213,7 +214,12 @@ class CX_CUnicode(__CX_Interface, CUnicode):
 class CX_Password(__CX_Interface, Password):
     pass
 
-        
+class CX_Tuple(__CX_Interface, Tuple):
+    
+    def __init__(self, *types, **metadata):
+        metadata.update(_auto_enter)
+        Tuple.__init__(self, *types, **metadata)
+
 class NodeTraitsConfig(NodeConfig, HasTraits):
     """
     An implementation of a Node Configuration using the traits library
