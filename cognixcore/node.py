@@ -662,7 +662,7 @@ class Node(Base, ABC):
             'inputs': [i.data() for i in self._inputs],
             'outputs': [o.data() for o in self._outputs],
             
-            'config': self._config.to_json() if self._config else None
+            'config': self._config.data() if self._config else None
         }
 
         # extend with data from addons

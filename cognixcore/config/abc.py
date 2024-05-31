@@ -65,6 +65,14 @@ class NodeConfig:
         pass
     
     @abstractmethod
-    def load(self, data: dict | str):
-        """Loads the configuration from a JSON-compliant dict or a JSON str"""
+    def load(self, data: dict):
+        """Loads the configuration from a JSON compatible dict"""
+        pass
+    
+    @abstractmethod
+    def data(self):
+        """
+        Returns a JSON compatible dict with the data needed to
+        reconstruct this configuration
+        """
         pass

@@ -3,11 +3,19 @@ from traits.api import NoDefaultSpecified
 from traits.observation.expression import ObserverExpression, trait, anytrait
 from traits.trait_base import not_false, not_event
 from traits.observation._trait_change_event import TraitChangeEvent
+from traits.trait_type import NoDefaultSpecified
 
 from typing import Callable, Any
 from json import loads, dumps
+from importlib import import_module
 
-from traits.trait_type import NoDefaultSpecified
+from collections.abc import (
+    Sequence, 
+    MutableSequence, 
+    MutableMapping, 
+    MutableSet, 
+    Set as ColSet
+)
 
 from ..node import Node
 from .abc import NodeConfig
@@ -223,9 +231,6 @@ class CX_Tuple(__CX_Interface, Tuple):
 class NodeTraitsConfig(NodeConfig, HasTraits):
     """
     An implementation of a Node Configuration using the traits library
-    
-    Based on the documentation, the traits inside this are treated as items, in
-    the context of GUI generation.
     """
     
     # CLASS
@@ -234,9 +239,34 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         'type': not_event,
         'visible': not_false,
     }
-    
+    _type_id = '$#t'
+    """
+    Used for serialization purposes. Intentionally complicated to avoid
+    collision with user defined data.
+    """
     __obs_exprs = None
     """Holds all the important observer expressions"""
+    
+    __str_to_type = {
+        'set': set,
+        'frozenset': frozenset,
+        'list': list,
+        'tuple': tuple,
+        'dict': dict
+    }
+    
+    @classmethod
+    def __type_to_str(cls, t: type):
+        if issubclass(t, MutableSet):
+            return 'set'
+        elif issubclass(t, ColSet):
+            return 'frozenset'
+        elif issubclass(t, MutableSequence):
+            return 'list'
+        elif issubclass(t, Sequence):
+            return 'tuple'
+        elif issubclass(t, MutableMapping):
+            return 'dict'
     
     @classmethod
     def obs_exprs(cls):
@@ -283,39 +313,117 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         """Blocks the invocation of events when a trait changes"""
         self.observe(self._on_config_changed, self.__obs_exprs, remove=True)
    
-    def load(self, data: dict | str):
+    def load(self, data: dict):
+        """
+        Loads the configuration from its serialized form.
+        This is a recursive operation that includes nested
+        configurations and configurations inside lists, dicts,
+        sets and tuples.
         
-        if isinstance(data, str):
-            data = loads(data)
-            
+        The only important thing is that any dynamically added
+        nested configurations must have their types imported
+        previously.
+        
+        Since traits configurations, at least for this library, are
+        primarily static in form, this shouldn't be an issue. 
+        """
         self._trait_change_notify(False)
-        for name, value in data.items():
+        for name, inner_data in data.items():
             try:
-                trait_value = getattr(self, name)
-                if isinstance(trait_value, NodeTraitsConfig):
-                    trait_value.load(value)
-                else:
-                    setattr(self, name, value)
+                d_result = self._deserialize_trait_data(inner_data)
+                setattr(self, name, d_result)
             except:
                 continue
         
         self._trait_change_notify(True)
     
+    def _deserialize_trait_data(self, data):
+        result = data
+        
+        if isinstance(data, dict):
+            type_id = data[self._type_id]
+            content: dict | list = data['content']
+        
+            if type_id == 'traits config':
+                mod_name = data['module']
+                cls_name = data['cls']
+                mod = import_module(mod_name)
+                cls = getattr(mod, cls_name)
+                
+                result: NodeTraitsConfig = cls()
+                result.load(content)
+        
+            elif type_id == 'dict':
+                result = {
+                    key: self._deserialize_trait_data(value)
+                    for key, value in content.items()
+                }
+            elif type_id in ('tuple', 'set', 'list', 'frozenset'):           
+                for i in range(len(content)):
+                    content[i] = self._deserialize_trait_data(content[i])
+                result = self.__str_to_type[type_id](content)
+        return result
+    
+    def data(self) -> dict:
+        """
+        Creates a JSON compatible dict with the data
+        needed to reconstruct this traits config. 
+        
+        This is a recursive operation.
+        """
+        result = {}
+        s_traits = self.serializable_traits()
+        for name in s_traits:
+            trait_value = getattr(self, name)
+            result[name] = self._serialize_trait_value(trait_value)    
+        return result
+    
+    def _serialize_trait_value(self, trait_value):
+        trait_data = trait_value
+        type_id = None
+        content = None
+        module = None
+        cls_name = None
+        
+        if (isinstance(trait_value, NodeTraitsConfig)):
+            type_id = 'traits config'
+            content = trait_value.data()
+            t = type(trait_value)
+            module = t.__module__
+            cls_name = t.__name__
+        
+        elif isinstance(trait_value, (tuple, set, list, frozenset)):
+            type_id = self.__type_to_str(type(trait_value))
+            content = list(trait_value)
+            # recursively serialize the non serializable
+            for i in range(len(content)):
+                content[i] = self._serialize_trait_value(content[i])
+                
+        elif isinstance(trait_value, dict):
+            type_id = self.__type_to_str(dict)
+            content = {
+                key: self._serialize_trait_value(val)
+                for key, val in trait_value.items()
+            }
+        
+        if not type_id:
+            return trait_data
+        else:
+            return {
+                self._type_id: type_id,
+                'content': content,
+                'module': module,
+                'cls': cls_name
+            }
+            
     def to_json(self, indent=1) -> str:
         return dumps(
-            self.serializable_traits(), 
-            indent=indent, skipkeys=True, 
-            default=self.__encode
+            self.data(), 
+            indent=indent, skipkeys=True,
         )
     
-    def serializable_traits(self):
+    def serializable_traits(self) -> dict[str, CTrait]:
         return self.trait_get(**self.__s_metadata)
-    
-    def __encode(self, obj):
-        if not isinstance(obj, NodeTraitsConfig):
-            return None
-        return obj.serializable_traits()
-    
 
 class NodeTraitsGroupConfig(NodeTraitsConfig):
     """
