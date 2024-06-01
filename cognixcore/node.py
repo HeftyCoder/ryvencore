@@ -577,7 +577,10 @@ class Node(Base, ABC):
         if message:
             self._progress.message = message
         self.set_progress(self._progress, as_percentage)
-            
+    
+    def set_progress_msg(self, message: str):
+        self._progress.message = message
+        self.set_progress(self._progress)
     """
     
     UTILITY METHODS1
