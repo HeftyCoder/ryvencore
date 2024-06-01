@@ -5,7 +5,7 @@ from traits.trait_base import not_false, not_event
 from traits.observation._trait_change_event import TraitChangeEvent
 from traits.trait_type import NoDefaultSpecified
 
-from typing import Callable, Any
+from typing import Callable, Any as AnyType
 from json import loads, dumps
 from importlib import import_module
 
@@ -239,6 +239,11 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         'type': not_event,
         'visible': not_false,
     }
+    __hidden_trait_names = {
+        'trait_added',
+        'trait_modified',
+        'label',
+    }
     _type_id = '$#t'
     """
     Used for serialization purposes. Intentionally complicated to avoid
@@ -422,9 +427,20 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             indent=indent, skipkeys=True,
         )
     
-    def serializable_traits(self) -> dict[str, CTrait]:
+    def serializable_traits(self) -> dict[str, AnyType]:
         return self.trait_get(**self.__s_metadata)
-
+    
+    def inspected_traits(self) -> dict[str, CTrait]:
+        # the trait_get func seems to ignore traits like Button
+        # however, the traits funct adds some additional traits
+        # that shouldn't be visible, despite visible=not_false
+        # that's why this is a workaround
+        return {
+            key: trait 
+            for key, trait in self.traits(visible=not_false).items()
+            if key not in self.__hidden_trait_names
+        }
+        
 class NodeTraitsGroupConfig(NodeTraitsConfig):
     """
     A type meant to represent a group in traits ui.
