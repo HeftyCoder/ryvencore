@@ -595,8 +595,6 @@ class VarsAddon(AddOn):
             for node in flow.nodes:        
                 # otherwise, check if it has load data and reconstruct subscriptions
                 if node.load_data and 'Variables' in node.load_data:
-                    import traceback
-                    traceback.print_stack()
                     for name, cb_name in node.load_data['Variables']['subscriptions'].items():
                         print(cb_name, getattr(node, cb_name))
                         self.subscribe(node, name, getattr(node, cb_name))
