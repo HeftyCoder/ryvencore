@@ -396,6 +396,13 @@ class IdentifiableGroups(Generic[InfoType]):
         """The identifiable groupped by their prefixes"""
         return self._groups_proxy
     
+    def rename(self, new_name: str, old_name: str, group: str):
+        id = self.groups[group][old_name]
+        self.remove(id)
+        
+        id._id_name = new_name
+        self.add(id)
+        
     def add(self, id: Identifiable[InfoType]):
         """Adds an identifiable to its group. Creates the group if it doesn't exist"""
         

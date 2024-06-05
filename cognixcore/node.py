@@ -1,7 +1,7 @@
 from __future__ import annotations
 import traceback
 
-from .base import Base, Identifiable, IHaveIdentifiable, Event
+from .base import Base, Identifiable, IdentifiableGroups, Event
 
 from .port import default_config, PortConfig, NodeInput, NodeOutput
 from .info_msgs import InfoMsgs
@@ -17,8 +17,16 @@ from beartype.door import is_bearable
 from numbers import Real
 from copy import copy
 from .addons.variables import VarsAddon
+from enum import IntEnum
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import (
+    TYPE_CHECKING, 
+    Any, 
+    TypeVar, 
+    Callable, 
+    ParamSpec,
+    Generic
+)
 if TYPE_CHECKING:
     from .flow import Flow
 
@@ -132,6 +140,8 @@ class Node(Base, ABC):
         self._progress = None
         self._logger = None
         
+        # action
+        self._actions = IdentifiableGroups[NodeAction]()
         # events
         self.updated = Event[int]()
         self.updating = Event[int]()
@@ -143,6 +153,11 @@ class Node(Base, ABC):
         self.output_updated = Event[Node, int, NodeOutput, Any]()
         self.config_changed = Event[NodeConfig]()
         self.progress_updated = Event[ProgressState]()
+    
+    @property
+    def actions(self):
+        """The actions of this node."""
+        return self._actions
     
     @property
     def config(self) -> NodeConfig | None:
@@ -187,6 +202,33 @@ class Node(Base, ABC):
         self._config = value
         if not silent:
             self.config_changed.emit(self._config)
+    
+    def add_action(self, name: str, action: NodeAction, group: str = None):
+        """Adds an action and groups it under a group"""
+        action.node = self
+        id = Identifiable(
+            name,
+            group,
+            info=action
+        )
+        self._actions.add(id)
+        return action
+    
+    def add_generic_action(
+        self, 
+        name: str,
+        invoke: Callable[[], None], 
+        update: Callable[[], None] = None,
+        group: str = None,
+    ):
+        action = GenericNodeAction(self, invoke, update)
+        id = Identifiable(
+            name,
+            group,
+            info=action
+        )
+        self._actions.add(id)
+        return action
 
     def _setup_ports(self, inputs_data=None, outputs_data=None):
 
@@ -694,7 +736,6 @@ def node_from_identifier(id: str, nodes: list[Node]):
                 f'backwards compatibility.'
             )
 
-
 class FrameNode(Node):
     """A node which updates every frame of the Cognix Application."""
     
@@ -721,6 +762,67 @@ class FrameNode(Node):
     def frame_update_event(self):
         """Called on every frame. Data might have been passed from other nodes"""
         pass
+
+class NodeAction(ABC):
+    """
+    A wrapper for defining an action that can happen for the node
+    
+    Useful for defining actions that can then be directly translated
+    to a context menu.
+    """
+    
+    class Status(IntEnum):
+        ENABLED = 0
+        DISABLED = 1
+        HIDDEN = 2
+    
+    def __init__(
+        self, 
+        node: Node,
+    ):
+        super().__init__()
+        self.node = node
+        self._status = NodeAction.Status.ENABLED
+        
+    @property
+    def status(self):
+        return self._status
+    
+    @status.setter
+    def status(self, value: NodeAction.Status):
+        self._status = value
+    
+    @abstractmethod
+    def invoke(self):
+        """The action is invoked!"""
+        pass
+    
+    @abstractmethod
+    def update(self):
+        """Update attributes of the action before it is invoked"""
+        pass
+
+class GenericNodeAction(NodeAction):
+    """
+    A generic node action that takes another method and wraps it
+    """
+    
+    def __init__(
+        self, 
+        node: Node,
+        invoke: Callable[[], None], 
+        update: Callable[[], None] | None,
+    ):
+        NodeAction.__init__(self, node)
+        self._invoke = invoke
+        self._update = update
+    
+    def update(self):
+        if self._update:
+            self._update()
+    
+    def invoke(self):
+        self._invoke()
 
 def get_node_classes(modname: str, to_fill: list | None = None, base_type: type = None):
     """Returns a list of node types defined in the current module that are not abstract"""
