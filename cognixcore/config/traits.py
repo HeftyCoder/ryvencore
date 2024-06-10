@@ -108,20 +108,6 @@ def __process_expression_obs(c_trait: CTrait, trait_name: str, expr: ObserverExp
             )
         else:
             return return_type, items_method(trait(trait_name))
-        
-    elif isinstance(trait_type, Set):
-        
-        return (
-            trait_type.item_trait,
-            expr.set_items() if expr else trait(trait_name).set_items()
-        )
-          
-    elif isinstance(trait_type, Dict):
-        
-        return (
-            trait_type.value_trait,
-            expr.dict_items() if expr else trait(trait_name).dict_items()
-        )    
             
     return (None, None)
 
@@ -317,7 +303,10 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
     def block_notifications(self):
         """Blocks the invocation of events when a trait changes"""
         self.observe(self._on_config_changed, self.__obs_exprs, remove=True)
-   
+    
+    def trait_change_notify(self, enable: bool):
+        self._trait_change_notify(enable)
+        
     def load(self, data: dict):
         """
         Loads the configuration from its serialized form.
