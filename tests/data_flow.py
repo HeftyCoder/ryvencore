@@ -42,9 +42,9 @@ class DataFlowBasic(unittest.TestCase):
 
         n2.update()
 
-        f.connect_nodes(n1._outputs[0], n2._inputs[0])
-        f.connect_nodes(n1._outputs[1], n3._inputs[0])
-        f.connect_nodes(n1._outputs[1], n4._inputs[0])
+        f.connect_ports(n1._outputs[0], n2._inputs[0])
+        f.connect_ports(n1._outputs[1], n3._inputs[0])
+        f.connect_ports(n1._outputs[1], n4._inputs[0])
 
         # test data model
 

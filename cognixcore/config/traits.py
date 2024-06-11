@@ -2,9 +2,15 @@ from traits.api import *
 from traits.api import NoDefaultSpecified
 from traits.observation.expression import ObserverExpression, trait, anytrait
 from traits.trait_base import not_false, not_event
-from traits.observation._trait_change_event import TraitChangeEvent
+from traits.observation.events import (
+    TraitChangeEvent, 
+    ListChangeEvent,
+    DictChangeEvent,
+    SetChangeEvent,
+)
 from traits.trait_type import NoDefaultSpecified
 
+from traitsui.api import View, Item
 from typing import Callable, Any as AnyType
 from json import loads, dumps
 from importlib import import_module
@@ -293,8 +299,21 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         NodeConfig.__init__(self, node)        
         HasTraits.__init__(self, *args, **kwargs)
         self.allow_notifications()
-    
+        self._init_children(node)
+        
+    def _init_children(self, node: Node):
+        self._node = node
+        for _, trait in self.serializable_traits().items():
+            if isinstance(trait, NodeTraitsConfig):
+                trait._init_children(node)
     # Traits only
+    
+    def is_duplicate_notif(self, ev):
+        if isinstance(ev, TraitChangeEvent):
+            return ev.new == ev.old
+        elif isinstance(ev, (ListChangeEvent, SetChangeEvent, DictChangeEvent)):
+            return ev.added == ev.removed
+        return False
     
     def allow_notifications(self):
         """Allows the invocation of events when a trait changes"""
@@ -429,7 +448,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             for key, trait in self.traits(visible=not_false).items()
             if key not in self.__hidden_trait_names
         }
-        
+    
 class NodeTraitsGroupConfig(NodeTraitsConfig):
     """
     A type meant to represent a group in traits ui.

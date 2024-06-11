@@ -36,11 +36,11 @@ class DataFlowBasic(unittest.TestCase):
         n1 = f.create_node(Node1)
         n2 = f.create_node(Node2)
 
-        assert f.connect_nodes(n1._outputs[0], n2._inputs[1]) != None
-        f.disconnect_nodes(n1._outputs[0], n2._inputs[1])
-        assert f.connect_nodes(n1._outputs[1], n2._inputs[1]) != None
-        f.disconnect_nodes(n1._outputs[1], n2._inputs[1])
-        assert f.connect_nodes(n1._outputs[2], n2._inputs[1]) == None
+        assert f.connect_ports(n1._outputs[0], n2._inputs[1]) != None
+        f.disconnect_ports(n1._outputs[0], n2._inputs[1])
+        assert f.connect_ports(n1._outputs[1], n2._inputs[1]) != None
+        f.disconnect_ports(n1._outputs[1], n2._inputs[1])
+        assert f.connect_ports(n1._outputs[2], n2._inputs[1]) == None
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,12 +1,31 @@
 """Namespace for enum types etc."""
-
+from __future__ import annotations
 from enum import IntEnum, auto
 from numbers import Real
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .port import NodeOutput, NodeInput
+    from .node import Node
 
+@dataclass(frozen=True)
+class ConnectionInfo:
+    """Characterizes a connection without the ports"""
+    
+    node_out: Node = None
+    out_i: int = 0
+    node_inp: Node = None
+    inp__i: int = 0
+    
+    @property
+    def out_port(self):
+        return self.node_out._outputs[self.out_i]
+    
+    @property
+    def inp_port(self):
+        return self.node_inp._inputs[self.inp__i]
+        
 class FlowAlg(IntEnum):
     """Used for serialization purposes"""
 

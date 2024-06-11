@@ -3,7 +3,13 @@ import traceback
 
 from .base import Base, Identifiable, IdentifiableGroups, Event
 
-from .port import default_config, PortConfig, NodeInput, NodeOutput
+from .port import (
+    default_config, 
+    PortConfig, 
+    NodeInput, 
+    NodeOutput, 
+    NodePort
+)
 from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
@@ -148,8 +154,10 @@ class Node(Base, ABC):
         self.update_error = Event[Exception]()
         self.input_added = Event[Node, int, NodeInput]()
         self.input_removed = Event[Node, int, NodeInput]()
+        self.input_renamed = Event[Node, int, NodeInput, str]()
         self.output_added = Event[Node, int, NodeOutput]()
         self.output_removed = Event[Node, int, NodeOutput]()
+        self.output_renamed = Event[Node, int, NodeOutput, str]()
         self.output_updated = Event[Node, int, NodeOutput, Any]()
         self.config_changed = Event[NodeConfig]()
         self.progress_updated = Event[ProgressState]()
@@ -457,7 +465,7 @@ class Node(Base, ABC):
     """
 
     #   PORTS
-
+        
     def any_port_connected(self):
         return self.any_input_connected() or self.any_output_connected()
     
@@ -517,7 +525,16 @@ class Node(Base, ABC):
         return inp
 
     def rename_input(self, index: int, label: str):
-        self._inputs[index].label_str = label
+        inp = self._inputs[index]
+        if inp.label_str != label:
+            old_label = inp.label_str
+            inp.label_str = label
+            self.input_renamed.emit(
+                self,
+                index,
+                inp,
+                old_label
+            )
 
     def delete_input(self, index: int):
         """
@@ -529,7 +546,7 @@ class Node(Base, ABC):
         # break all connections
         out = self.flow.connected_output(inp)
         if out is not None:
-            self.flow.connect_nodes(out, inp)
+            self.flow.disconnect_ports(out, inp)
 
         self._inputs.remove(inp)
 
@@ -564,7 +581,16 @@ class Node(Base, ABC):
         return out
 
     def rename_output(self, index: int, label: str):
-        self._outputs[index].label_str = label
+        out = self._outputs[index]
+        if out.label_str != label:
+            old_label = out.label_str
+            out.label_str = label
+            self.output_renamed.emit(
+                self,
+                index,
+                out,
+                old_label
+            )
 
     def delete_output(self, index: int):
         """
@@ -575,7 +601,7 @@ class Node(Base, ABC):
 
         # break all connections
         for inp in self.flow.connected_inputs(out):
-            self.flow.connect_nodes(out, inp)
+            self.flow.disconnect_ports(out, inp)
 
         self._outputs.remove(out)
 

@@ -43,10 +43,10 @@ class ExecFlowBasic(unittest.TestCase):
         n3 = f.create_node(Node2)
         n4 = f.create_node(Node2)
 
-        f.connect_nodes(n1._outputs[0], n2._inputs[0])
-        f.connect_nodes(n1._outputs[1], n2._inputs[1])
-        f.connect_nodes(n1._outputs[0], n3._inputs[0])
-        f.connect_nodes(n1._outputs[1], n4._inputs[1])
+        f.connect_ports(n1._outputs[0], n2._inputs[0])
+        f.connect_ports(n1._outputs[1], n2._inputs[1])
+        f.connect_ports(n1._outputs[0], n3._inputs[0])
+        f.connect_ports(n1._outputs[1], n4._inputs[1])
 
         self.assertEqual(n1._outputs[0].val, None)
         self.assertEqual(n1._outputs[1].val, None)

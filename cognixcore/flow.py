@@ -93,7 +93,7 @@ from .base import Base, Event, find_identifiable
 from .flow_executor import FlowExecutor, executor_from_flow_alg, flow_alg_from_executor
 from .node import Node, NodeType
 from .port import NodeOutput, NodeInput, check_valid_conn
-from .rc import FlowAlg, ConnValidType
+from .rc import FlowAlg, ConnValidType, ConnectionInfo
 from .utils import *
 from typing import TYPE_CHECKING
 from logging import Logger
@@ -403,7 +403,7 @@ class Flow(Base):
                 connected_node = nodes[c_connected_node_index]
 
                 connections.append(
-                    self.connect_nodes(
+                    self.connect_ports(
                         parent_node._outputs[c_output_port_index],
                         connected_node._inputs[c_connected_input_port_index],
                         silent=True
@@ -413,6 +413,14 @@ class Flow(Base):
 
         return connections
 
+    def connection_info(self, c:tuple[NodeOutput, NodeInput]):
+        """Returns information about a connection without the ports"""
+        out, inp = c
+        out_node, inp_node = out.node, inp.node
+        out_i = out.node._outputs.index(out)
+        inp_i = inp.node._inputs.index(inp)
+        
+        return ConnectionInfo(out_node, out_i, inp_node, inp_i)
 
     def check_connection_validity(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
@@ -430,7 +438,7 @@ class Flow(Base):
         return valid_result
 
     
-    def can_nodes_connect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
+    def can_ports_connect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
         Same as :code:`Flow.check_connection_validity()`
         
@@ -454,7 +462,7 @@ class Flow(Base):
         return valid_result
     
     
-    def can_nodes_disconnect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
+    def can_ports_disconnect(self, c: tuple[NodeOutput, NodeInput]) -> ConnValidType:
         """
         Same as :code:`Flow.check_connection_validity()`
         
@@ -472,13 +480,27 @@ class Flow(Base):
         self.connection_request_valid.emit(valid_result)
         
         return valid_result
+    
+    def connect_from_info(self, conn: ConnectionInfo, silent=False):
+        return self.connect_nodes(
+            conn.node_out,
+            conn.out_i,
+            conn.node_inp,
+            conn.inp__i,    
+            silent
+        )
+        
+    def connect_nodes(self, out: Node, out_i: int, inp: Node, inp_i: int, silent=False):
+        out = out._outputs[out_i]
+        inp = inp._inputs[inp_i]
+        return self.connect_ports(out, inp, silent)
 
-    def connect_nodes(self, out: NodeOutput, inp: NodeInput, silent=False) -> tuple[NodeOutput, NodeInput] | None:
+    def connect_ports(self, out: NodeOutput | int, inp: NodeInput | int, silent=False) -> tuple[NodeOutput, NodeInput] | None:
         """
         Connects two node ports. Returns the connection if successful, None otherwise.
         """
-
-        valid_result = self.can_nodes_connect((out, inp))
+        
+        valid_result = self.can_ports_connect((out, inp))
         
         if valid_result != ConnValidType.VALID:
             print_err(f'Invalid connect request')
@@ -488,13 +510,26 @@ class Flow(Base):
 
         return out, inp
 
-
-    def disconnect_nodes(self, out: NodeOutput, inp: NodeInput, silent=False):
+    def disconnect_from_info(self, conn: ConnectionInfo, silent=False):
+        return self.disconnect_nodes(
+            conn.node_out,
+            conn.out_i,
+            conn.node_inp,
+            conn.inp__i,
+            silent    
+        )
+        
+    def disconnect_nodes(self, out: Node, out_i: int, inp: Node, inp_i: int, silent=False):
+        out = out._outputs[out_i]
+        inp = inp._inputs[inp_i]
+        return self.disconnect_ports(out, inp, silent)
+    
+    def disconnect_ports(self, out: NodeOutput, inp: NodeInput, silent=False):
         """
         Disconnects two node ports.
         """
 
-        valid_result = self.can_nodes_disconnect((out, inp))
+        valid_result = self.can_ports_disconnect((out, inp))
         
         if valid_result != ConnValidType.VALID:
             print_err(f'Invalid disconnect request')
