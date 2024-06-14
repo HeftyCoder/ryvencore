@@ -344,7 +344,11 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         for name, inner_data in data.items():
             try:
                 d_result = self._deserialize_trait_data(inner_data)
-                setattr(self, name, d_result)
+                attr_val = getattr(self, name)
+                if isinstance(attr_val, NodeTraitsConfig):
+                    attr_val.load(d_result)
+                else:
+                    setattr(self, name, d_result)
             except:
                 continue
         
@@ -358,13 +362,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             content: dict | list = data['content']
         
             if type_id == 'traits config':
-                mod_name = data['module']
-                cls_name = data['cls']
-                mod = import_module(mod_name)
-                cls = getattr(mod, cls_name)
-                
-                result: NodeTraitsConfig = cls()
-                result.load(content)
+                result = content
         
             elif type_id == 'dict':
                 result = {
@@ -402,8 +400,6 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             type_id = 'traits config'
             content = trait_value.data()
             t = type(trait_value)
-            module = t.__module__
-            cls_name = t.__name__
         
         elif isinstance(trait_value, (tuple, set, list, frozenset)):
             type_id = self.__type_to_str(type(trait_value))
@@ -425,8 +421,6 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             return {
                 self._type_id: type_id,
                 'content': content,
-                'module': module,
-                'cls': cls_name
             }
             
     def to_json(self, indent=1) -> str:
