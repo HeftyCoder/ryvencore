@@ -322,9 +322,6 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
     def block_notifications(self):
         """Blocks the invocation of events when a trait changes"""
         self.observe(self._on_config_changed, self.__obs_exprs, remove=True)
-    
-    def trait_change_notify(self, enable: bool):
-        self._trait_change_notify(enable)
         
     def load(self, data: dict):
         """
@@ -340,7 +337,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         Since traits configurations, at least for this library, are
         primarily static in form, this shouldn't be an issue. 
         """
-        self._trait_change_notify(False)
+        self.block_change_events()
         for name, inner_data in data.items():
             try:
                 d_result = self._deserialize_trait_data(inner_data)
@@ -352,7 +349,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
             except:
                 continue
         
-        self._trait_change_notify(True)
+        self.allow_change_events()
     
     def _deserialize_trait_data(self, data):
         result = data
