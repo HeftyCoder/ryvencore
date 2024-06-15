@@ -379,8 +379,9 @@ class Session(Base):
         """Stops the graph player"""
         
         graph = self.graph_player(flow_name)
-        if not graph and callback:
-            callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
+        if not graph:
+            if callback:
+                callback(GraphActionResponse.NO_GRAPH, f"No flow associated with name {flow_name}")
             return
         
         if graph.state != GraphState.PLAYING and callback:
