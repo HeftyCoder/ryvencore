@@ -1,21 +1,21 @@
-ryvencore.addons.default package
+cognixcore.addons.default package
 ================================
 
 Submodules
 ----------
 
-ryvencore.addons.default.Logging module
+cognixcore.addons.logging module
 ---------------------------------------
 
-.. automodule:: ryvencore.addons.default.Logging
+.. automodule:: cognixcore.addons.logging
    :members:
    :undoc-members:
    :show-inheritance:
 
-ryvencore.addons.default.Variables module
+cognixcore.addons.variables module
 -----------------------------------------
 
-.. automodule:: ryvencore.addons.default.Variables
+.. automodule:: cognixcorecore.addons.variables
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ ryvencore.addons.default.Variables module
 Module contents
 ---------------
 
-.. automodule:: ryvencore.addons.default
+.. automodule:: cognixcore.addons
    :members:
    :undoc-members:
    :show-inheritance:

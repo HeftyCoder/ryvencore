@@ -1,4 +1,4 @@
-ryvencore.addons package
+cognixcore.addons package
 ========================
 
 Subpackages
@@ -7,12 +7,12 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ryvencore.addons.default
+   cognixcore.addons.default
 
 Module contents
 ---------------
 
-.. automodule:: ryvencore.addons
+.. automodule:: cognixcore.addons
    :members:
    :undoc-members:
    :show-inheritance:

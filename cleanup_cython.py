@@ -40,11 +40,7 @@ def cleanup():
 
     os.chdir(os.path.dirname(__file__))
 
-    # print('UNINSTALLING RYVENCORE')
-    #
-    # os.system('pip uninstall ryvencore --yes')
-
-    remove_files = get_generated_files('./ryvencore/')
+    remove_files = get_generated_files('./cognixcore/')
 
     print('REMOVING FILES\n', '\n'.join(remove_files))
 
@@ -56,7 +52,7 @@ def cleanup():
     dirs = [
         'build',
         'dist',
-        'ryvencore.egg-info',
+        'cognixcore.egg-info',
     ]
 
     for d in dirs:

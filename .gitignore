@@ -3,5 +3,5 @@ __pycache__/
 venv/
 build/
 dist/
-ryvencore.egg-info/
+cognixcore.egg-info/
 site/

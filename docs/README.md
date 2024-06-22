@@ -1,5 +1,5 @@
 The documentation is based on Sphinx, the documentation sources are in the `source` folder.
-This documentation is automatically built from the ryvencore source code and deployed to GitHub Pages by GitHub Actions
+This documentation is automatically built from the cognixcore source code and deployed to GitHub Pages by GitHub Actions
 whenever the main branch is pushed to. To test locally, proceed as follows:
 
 **move into `docs`**

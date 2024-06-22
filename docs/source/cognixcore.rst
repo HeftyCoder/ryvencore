@@ -1,4 +1,4 @@
-ryvencore package
+cognixcore package
 =================
 
 Subpackages
@@ -7,50 +7,42 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ryvencore.addons
+   cognixcore.addons
 
 Submodules
 ----------
 
-ryvencore.AddOn module
+cognixcore.base module
 ----------------------
 
-.. automodule:: ryvencore.AddOn
+.. automodule:: cognixcore.base
    :members: AddOn
    :show-inheritance:
 
-
-ryvencore.Data module
+cognixcore.flow module
 ---------------------
 
-.. automodule:: ryvencore.Data
+.. automodule:: cognixcore.flow
    :members:
    :show-inheritance:
 
-ryvencore.Flow module
+cognixcore.node module
 ---------------------
 
-.. automodule:: ryvencore.Flow
+.. automodule:: cognixcore.node
    :members:
    :show-inheritance:
 
-ryvencore.Node module
----------------------
-
-.. automodule:: ryvencore.Node
-   :members:
-   :show-inheritance:
-
-ryvencore.Session module
+cognixcore.session module
 ------------------------
 
-.. automodule:: ryvencore.Session
+.. automodule:: cognixcore.session
    :members:
    :show-inheritance:
 
 Module contents
 ---------------
 
-.. automodule:: ryvencore
+.. automodule:: cognixcore
    :members:
    :show-inheritance:

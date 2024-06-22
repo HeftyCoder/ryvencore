@@ -21,8 +21,8 @@ from importlib.metadata import metadata
 # -- Project information -----------------------------------------------------
 
 project = 'cognixcore'
-copyright = '2024, Leon Thomm'
-author = 'Leon Thomm'
+copyright = '2024, CogniX'
+author = 'CogniX'
 
 # The full version, including alpha/beta/rc tags
 release = f"v{ metadata('cognixcore')['version'] }"
@@ -60,12 +60,12 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 
-import maisie_sphinx_theme
-extensions.append("maisie_sphinx_theme")
-html_theme = 'maisie_sphinx_theme'
-html_theme_path = maisie_sphinx_theme.html_theme_path()
+# import maisie_sphinx_theme
+# extensions.append("maisie_sphinx_theme")
+# html_theme = 'maisie_sphinx_theme'
+# html_theme_path = maisie_sphinx_theme.html_theme_path()
 
-# html_theme = 'alabaster'
+html_theme = 'alabaster'
 # 'furo'
 # 'karma_sphinx_theme'
 # 'insegel'

@@ -1,4 +1,4 @@
-:: sphinx-apidoc --separate --force -d 2 -o ./source/ ../ryvencore/
+:: sphinx-apidoc --separate --force -d 2 -o ./source/ ../cognixcore/
 
 @ECHO OFF
 
