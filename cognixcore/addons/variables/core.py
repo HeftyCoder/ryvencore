@@ -1,3 +1,9 @@
+"""
+This module implements the functionality for the Variables Addon. The VarType,
+which holds information regarding a variable is defined here, as well as the
+VarsAddon.
+"""
+
 from __future__ import annotations
 from packaging.version import parse as parse_version
 from ..base import AddOn
@@ -17,7 +23,7 @@ class VarType:
     """
     Holds all the information for a subscribed type to the Variables Addon.
     
-    Essentially, one can define their own variable types for use with the Addon.
+    One can define their own variable types for use with the Addon.
     Only defined variable types that are registered in the Addon are allowed to
     be used.
     """
@@ -209,38 +215,6 @@ class VarsAddon(AddOn):
     meaning that data dependencies are determined also by variable subscriptions and not
     purely by the edges in the graph anymore. This can be useful, but it can also prevent
     optimization. Variables are flow-local.
-
-    >>> import ryvencore as rc
-    >>>
-    >>> class MyNode(rc.Node):
-    ...     init_outputs = []
-    ...
-    ...     def __init__(self, params):
-    ...         super().__init__(params)
-    ...
-    ...         self.Vars = self.get_addon('Variables')
-    ...         self.var_val = None
-    ...
-    ...     def place_event(self):
-    ...         self.Vars.subscribe(self, 'var1', self.var1_changed)
-    ...         self.var_val = self.Vars.var(self.flow, 'var1').get()
-    ...
-    ...     def var1_changed(self, val):
-    ...         print('var1 changed!')
-    ...         self.var_val = val
-    >>>
-    >>> s = rc.Session()
-    >>> s.register_node_type(MyNode)
-    >>> f = s.create_flow('main')
-    >>>
-    >>> Vars = s.addons['Variables']
-    >>> v = Vars.create_var(f, 'var1', None)
-    >>>
-    >>> n1 = f.create_node(MyNode)
-    >>> v.set(42)
-    var1 changed!
-    >>> print(n1.var_val)
-    42
     """
 
     _name = 'Variables'

@@ -35,6 +35,7 @@ from typing import (
 )
 if TYPE_CHECKING:
     from .flow import Flow
+    from .flow_player import GraphPlayer
 
 class Node(Base, ABC):
     """
@@ -163,7 +164,7 @@ class Node(Base, ABC):
         self.progress_updated = Event[ProgressState]()
     
     @property
-    def actions(self):
+    def actions(self) -> IdentifiableGroups[NodeAction]:
         """The actions of this node."""
         return self._actions
     
@@ -177,7 +178,7 @@ class Node(Base, ABC):
         self.set_config(value, False)
     
     @property
-    def player(self):
+    def player(self) -> GraphPlayer:
         return self.flow.player
     
     @property
@@ -194,7 +195,7 @@ class Node(Base, ABC):
         """Retrieves the value of a variable"""
         return self.vars_addon.var(self.flow, name).value
     
-    def var_val_get(self, name: str):
+    def var_val_get(self, name: str) -> Any | None:
         """Retrieves the value of a variable. Returns None if it doesn't exist."""
         if not self.vars_addon.var_exists(self.flow, name):
             return None
@@ -211,7 +212,7 @@ class Node(Base, ABC):
         if not silent:
             self.config_changed.emit(self._config)
     
-    def add_action(self, name: str, action: NodeAction, group: str = None):
+    def add_action(self, name: str, action: NodeAction, group: str = None) -> NodeAction:
         """Adds an action and groups it under a group"""
         action.node = self
         id = Identifiable(
@@ -305,7 +306,7 @@ class Node(Base, ABC):
         InfoMsgs.write_err('EXCEPTION in', self.title, '\n', traceback.format_exc())
         self.update_error.emit(e)
 
-    def input(self, index: int):
+    def input(self, index: int) -> Any:
         """
         Returns the data residing at the data input of given index.
 

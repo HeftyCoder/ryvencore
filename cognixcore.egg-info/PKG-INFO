@@ -23,33 +23,43 @@ Requires-Dist: traitsui
   <img src="./docs/img/logo.png" alt="drawing" width="70%"/>
 </p>
 
-An experimental Python library for graph-based processing, designed for flow-based/node-based visual scripting editors. It is the backbone of the [Ryven](https://github.com/leon-thomm/Ryven) project, but it can very much be used in other contexts as well.
-
-While ryvencore is written purely in Python, it is very lightweight and highly compatible. It can be compiled with Cython, see the `setup_cython.py` file. The performance seems comparable so far, but the code hasn't been optimized for Cython yet, so there might be a lot of potential. Please consider contributing. ryvencore also seems compatible with most Python ports to WebAssembly, even the Cython compiled ryvencore.
+A Python library for offline and streaming graph-based processing and evaluation, designed for modern flow-based/node-based scenarios. It is the driving force behind the CogniX project, but was designed with extensibility and modularity in mind. This library started as a fork of [ryvencore](https://github.com/leon-thomm/ryvencore), with additional functionality. Due to requirements that introduced breaking changes and deviation from the original source, the [fork](https://github.com/HeftyCoder/ryvencore/tree/cognix) was moved to a stand-alone repository.
 
 ### Installation
 
-```
-pip install ryvencore
-```
+PyPi installation is in the works.
 
-or from sources:
+Install from sources - preferably after creating and activating a [python virtual environment](https://docs.python.org/3/library/venv.html): 
 ```
 git clone https://github.com/leon-thomm/ryvencore
-cd ryvencore
+cd cognixcore
 pip install .
 ```
 
 ### Usage
 
-As an experimental library, the API is not fully stable and small breaking changes over time should be expected. Generally, the API is defined by what is included in the [docs](https://leon-thomm.github.io/ryvencore/).
+The API should be quite stable. However, if at some point the current design is deemed outdated or hinders any kind of major workflow, breaking changes will be introduced. For a guide on how to get started and what you can actually do, visit the [docs].
 
-### Examples
+### Features
 
-**loading a project** e.g. exported from Ryven
+The main features include
+
+- **load & save** from and into JSON
+- **no immediate association** with any GUI library 
+- **configurable nodes** through [Traits](https://docs.enthought.com/traits/) and automatic UI generation with [TraitsUI](https://docs.enthought.com/traitsui/) (both can be overriden or extended) 
+- **flexible port connection type-checking** with Python's type hinting using [beartype](https://github.com/beartype/beartype)
+- **fast BFS graph evaluation** with out of the box support for data streaming scenarios (i.e. Audio Processing, Brain Computer Interfaces, ...)
+- **per flow variables system** that includes Python's primitive types but can be extended 
+- **built-in logging** where each Node and Flow have their own loggers based on Python's [logging module](https://docs.python.org/3/library/logging.html)
+- **actions system for nodes** for defining custom context-menus
+- **RESTful API** with [FastAPI](https://fastapi.tiangolo.com) to enable third-party application interoperability
+
+### A most simple example
+
+**loading a project**
 
 ```python
-import ryvencore as rc
+import cognixcore as cc
 import json
 import sys
 
@@ -62,7 +72,7 @@ if __name__ == '__main__':
         project: dict = json.loads(f.read())
 
     # run ryvencore
-    session = rc.Session()
+    session = cc.Session()
     session.load(project)
 
     # access the first flow
@@ -75,17 +85,6 @@ if __name__ == '__main__':
     my_node.update()
 ```
 
-### Features
-
-The main features include
-
-- **load & save** from and into JSON
-- **a simple and powerful nodes system** which lets you do anything, simple and unrestricted
-- **data *and* exec flow support** - unlike lots of other solutions out there, ryvencore supports exec flows
-- **variables system** with subscribe and update mechanism to build nodes that automatically adapt to change of data
-- **built-in logging** based on python's `logging` module
-- **actions system for nodes** (WIP)
-
 ### Licensing
 
-ryvencore is licensed under the [LGPL License](github.com/leon-thomm/ryvencore/blob/master/LICENSE).
+cognixcore is licensed under the [LGPL License](github.com/leon-thomm/ryvencore/blob/master/LICENSE).

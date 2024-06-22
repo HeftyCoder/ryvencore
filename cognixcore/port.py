@@ -89,7 +89,7 @@ class NodeOutput(NodePort):
 
         self.val: allowed_data = None
 
-def check_valid_data(type_out: type, type_in: type):
+def check_valid_data(type_out: type, type_in: type) -> bool:
     
     if not type_out:
         type_out = object

@@ -14,7 +14,7 @@ class ComplexSerializer(BasicSerializer):
             'imag': obj.imag,
         }
     
-    def deserialize(self, data):
+    def deserialize(self, data) -> complex:
         return complex(real=data['real'], imag=data['imag'])
 
 class FractionSerializer(BasicSerializer):
@@ -28,7 +28,7 @@ class FractionSerializer(BasicSerializer):
             'denom': obj.denominator,
         }
     
-    def deserialize(self, data) -> dict:
+    def deserialize(self, data) -> Fraction:
         return Fraction(
             numerator=data['num'], 
             denominator=data['denom']

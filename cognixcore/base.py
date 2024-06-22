@@ -1,9 +1,9 @@
 """
-This module defines the :code:`Base` class for most internal components,
+This module defines the :class::`Base` class for most internal components,
 implementing features such as a unique ID, a system for save and load,
 and a very minimal event system.
 """
-
+from typing import Self
 from bisect import insort
 from collections.abc import Iterable, Set, Mapping
 from typing import Generic, TypeVar, ParamSpec, Callable, Any
@@ -76,7 +76,7 @@ class IDCtr:
         self.ctr = -1
 
     def count(self):
-        """increases the counter and returns the new count. first time is 0"""
+        """Increases the counter and returns the new count. Starting value is 0"""
         self.ctr += 1
         return self.ctr
 
@@ -87,6 +87,7 @@ class IDCtr:
             self.ctr = cnt
 
 EP = ParamSpec('EP')
+"""A Parameter Spec for the :class::`Event` class. For Generic purposes."""
 
 class Event(Generic[EP]):
     """
@@ -139,7 +140,7 @@ class Event(Generic[EP]):
     
     def __unsub(self, callback: Callable[EP, None], check_one_off: bool):
         """
-        De-registers a function that was added. If check_one_off, attempts to remove
+        De-registers a function that was added. If :code:`check_one_off`, attempts to remove
         it as a one_off function. This is an internal function.
         """
         nice = self._slot_priorities[callback]
@@ -294,17 +295,17 @@ class Identifiable(Generic[InfoType]):
         return f"prexix: {self._id_prefix} name: {self._id_name} info: {self.info}"
     
     @property
-    def id(self):
+    def id(self) -> str:
         """The id of this identifiable. A combination of the prefix (if used) and the name."""
         return self._id
 
     @property
-    def name(self):
+    def name(self) -> str:
         """The name of this identifiable."""
         return self._id_name
     
     @property
-    def prefix(self):
+    def prefix(self) -> str | None:
         """The prefix of this identifable"""
         return self._id_prefix
     
@@ -321,7 +322,8 @@ class IHaveIdentifiable:
         raise NotImplemented("The identifiable method must be implemented") 
 
 def find_identifiable(id: str, to_search: Iterable[Identifiable[InfoType]]):
-
+    """Searches for a :class::`Identifiable` with a given id."""
+    
     for nc in to_search:
         if nc.id == id:
             return nc
@@ -342,7 +344,7 @@ class IdentifiableGroups(Generic[InfoType]):
     """
     Groups identifiables by their prefix and name. Identifiables with no prefix are groupped under 'global'
     
-    Also holds structures for getting an identifiable by its name
+    Also holds structures for getting an identifiable by its name.
     """
     NO_PREFIX_ROOT = 'global'
     
@@ -382,17 +384,17 @@ class IdentifiableGroups(Generic[InfoType]):
         return self.__id_groups.__str__()
     
     @property
-    def id_set(self):
+    def id_set(self) -> set[Identifiable[InfoType]]:
         """A set containing all the Identifiables"""
         return self.__id_set
     
     @property
-    def id_map(self):
+    def id_map(self) -> Mapping[str, Identifiable[InfoType]]:
         """A map with layout {id: identifiable}"""
         return self.__id_dict_proxy
     
     @property
-    def groups(self):
+    def groups(self) -> Mapping[str, Mapping[str, Identifiable[InfoType]]]:
         """The identifiable groupped by their prefixes"""
         return self._groups_proxy
     
@@ -403,7 +405,7 @@ class IdentifiableGroups(Generic[InfoType]):
         id._id_name = new_name
         self.add(id)
         
-    def add(self, id: Identifiable[InfoType]):
+    def add(self, id: Identifiable[InfoType]) -> bool:
         """Adds an identifiable to its group. Creates the group if it doesn't exist"""
         
         if id.id in self.__id_dict:
@@ -456,7 +458,7 @@ class IdentifiableGroups(Generic[InfoType]):
             return None
         return MappingProxyType(self.__id_groups[group_id])
 
-    def group_infos(self, group_id: str):
+    def group_infos(self, group_id: str) -> set[Self]:
         group = self.group(group_id)
         return {identifiable.info for identifiable in group.values()}
     

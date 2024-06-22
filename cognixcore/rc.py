@@ -35,7 +35,8 @@ class FlowAlg(IntEnum):
     DATA_OPT = 3
 
     @staticmethod
-    def str(mode):
+    def str(mode) -> str:
+        """Returns one of the following: [manual, data, exec, data opt]"""
         if mode == FlowAlg.MANUAL:
             return 'manual'
         if mode == FlowAlg.DATA:
@@ -49,6 +50,7 @@ class FlowAlg(IntEnum):
 
     @staticmethod
     def from_str(mode):
+        """Returns a FlowAlg from a string"""
         if mode == 'manual':
             return FlowAlg.MANUAL
         elif mode == 'data':
@@ -148,7 +150,7 @@ class ProgressState:
         return f'Value:{self._value} Max:{self._max_value} Message: {self.message}'
     
     @property
-    def max_value(self):
+    def max_value(self) -> Real:
         """Max value of the progress."""
         return self._max_value
     
@@ -157,7 +159,7 @@ class ProgressState:
         self._max_value = max_value
     
     @property
-    def value(self):
+    def value(self) -> Real:
         """Current value of the progress. A negative value indicates indefinite progress"""
         return self._value
 
@@ -173,9 +175,9 @@ class ProgressState:
         """Returns true if there is indefinite progress"""
         return self._value < 0
     
-    def percentage(self):
+    def percentage(self) -> Real:
         return self._value / self._max_value
     
-    def as_percentage(self):
+    def as_percentage(self) -> ProgressState:
         """Returns a new progress state so that max_value = 1"""
         return ProgressState(1, self._value / self.max_value, self.message)

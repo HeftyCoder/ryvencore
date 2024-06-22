@@ -9,13 +9,21 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+
+# FOR AUTODOC:
+    # sphinx-apidoc -o source/docstrings -e  ../cognixcore
+    # ./make clear html
+    # ./make html
+
+# FOR AUTOAPI:
+    # sphinx-build -b html . _build
+    
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
 from cognixcore import *
-from setup_cython import *
+from setup_cython_untested import *
 from importlib.metadata import metadata
 
 # -- Project information -----------------------------------------------------
@@ -38,7 +46,12 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.doctest',
+    'autoapi.extension',
 ]
+
+# might test this later
+autoapi_dirs = ['../../cognixcore'] # sphinx-build -b html . _build
+autoapi_type = "python"
 
 add_module_names = False
 
@@ -53,26 +66,20 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 
-# import maisie_sphinx_theme
-# extensions.append("maisie_sphinx_theme")
-# html_theme = 'maisie_sphinx_theme'
-# html_theme_path = maisie_sphinx_theme.html_theme_path()
-
-html_theme = 'alabaster'
+html_theme = 'furo'
 # 'furo'
 # 'karma_sphinx_theme'
 # 'insegel'
 # 'pydata_sphinx_theme'
 # 'furo'
 # 'sphinx_rtd_theme'
-# 'groundwork' 'alabaster'
+# 'groundwork' 
+# 'alabaster'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

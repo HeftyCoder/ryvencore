@@ -63,7 +63,7 @@ class ManualFlow(FlowExecutor):
     An executor that doesn't propagate any data between nodes. Doesn't
     handle the exec_output.
     
-    To be used for manual evaluation of the whole flow graph.
+    To be used for manual and/or external evaluation of the whole flow graph.
     """
     
     def __init__(self, flow: Flow):
@@ -92,11 +92,11 @@ class ManualFlow(FlowExecutor):
         out.val = data
         self.outputs_updated.add(out)
     
-    def should_input_update(self, inp: NodeInput):
+    def should_input_update(self, inp: NodeInput) -> bool:
         out = self.flow.connected_output(inp)
         return out in self.outputs_updated
     
-    def has_updated_outputs(self, node: Node):
+    def has_updated_outputs(self, node: Node) -> bool:
         for out in node._outputs:
             if out in self.outputs_updated:
                 return True

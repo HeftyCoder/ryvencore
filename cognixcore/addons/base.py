@@ -1,19 +1,14 @@
 """
-*ALPHA*
-
-This module defines a simple add-on system to extend ryvencore's functionalities.
-Some add-ons are provided in the addons package, and additional add-ons
-can be added and registered in the Session.
+This module defines an add-on system to extend congixcore's functionalities.
+The :class::`cognixcore.addons.variables.core.VarsAddon` and :class::`cognixcore.addons.logging.LoggingAddon` 
+addons are built-in. Additional add-ons can be implemented and registered in the Session.
 
 An add-on
-    - has a name and a version
-    - is session-local, not flow-local (but you can of course implement per-flow functionality)
+    - has a unique name and a version
+    - is session-local, not flow-local but can implement per-Flow functionality
     - manages its own state (in particular :code:`get_state()` and :code:`set_state()`)
     - can store additional node-specific data in the node's :code:`data` dict when it's serialized
     - will be accessible through the nodes API: :code:`self.get_addon('your_addon')` in your nodes
-
-TODO: The below statement is not true, I think. Add-ons are loaded first, and nodes can access
- them during their initialization (but it may be a bad idea).
 
 Add-on access is blocked during loading (deserialization), so nodes should not access any
 add-ons during the execution of :code:`Node.__init__` or :code:`Node.set_data`.
@@ -21,13 +16,8 @@ This prevents inconsistent states. Nodes are loaded first, then the add-ons.
 Therefore, the add-on should be sufficiently isolated and self-contained.
 
 To define a custom add-on:
-    - create a directory :code:`your_addons` for you addons or use ryvencore's addon directory
-    - create a module for your addon :code:`YourAddon.py` in :code:`your_addons`
-    - create a class :code:`YourAddon(ryvencore.AddOn)` that defines your add-on's functionality
-    - instantiate it into a top-level variable: :code:`addon = YourAddon()` at the end of the module
-    - register your addon directory in the Session: :code:`session.register_addon_dir('path/to/your_addons')`
-
-See :code:`ryvencore.addons` for examples.
+    - create a class :code:`YourAddon(cognixcore.addons.base.AddOn)` that defines your add-on's functionality
+    - register your addon directory in the Session: :code:`session.register_addon_dir(YourAddon | YourAddon())`
 """
 
 from __future__ import annotations
@@ -50,9 +40,7 @@ class AddOn(Base):
         return cls._name if cls._name else cls.__name__
     
     def register(self, session: Session):
-        """
-        Called when the add-on is registered with a session.
-        """
+        """Called when the add-on is registered to a session."""
         self.session = session
         self.session.flow_created.sub(self.on_flow_created, nice=-5)
         self.session.flow_deleted.sub(self.on_flow_destroyed, nice=-5)
@@ -61,7 +49,7 @@ class AddOn(Base):
             self.connect_flow_events(f)
     
     def unregister(self):
-        
+        """Called when the add-on is unregistered from a session."""
         self.session.flow_created.unsub(self.on_flow_created)
         self.session.flow_deleted.unsub(self.on_flow_destroyed)
             
@@ -71,7 +59,8 @@ class AddOn(Base):
 
     def connect_flow_events(self, flow: Flow):
         """
-        Connects flow events to the add-on.
+        Connects flow events to the add-on. There are events for
+        when a node is created, added, removed or created from data.
         """
         flow.node_created.sub(self.on_node_created, nice=-4)
         flow.node_added.sub(self.on_node_added, nice=-4)
@@ -90,7 +79,7 @@ class AddOn(Base):
         """
         *VIRTUAL*
         
-        Called when an addon is loaded from data. This is
+        Called when an addon is loaded from data. This is invoked
         after the flows and nodes have been loaded.
         """
 
@@ -138,7 +127,7 @@ class AddOn(Base):
 
         Called when a node is loaded and fully initialized
         from data. The node has been added to the flow, however
-        the place_event has not been called yet.
+        the :code:`Node.place_event()` has not been called yet.
         """
         pass
         
@@ -205,3 +194,4 @@ class AddOn(Base):
 
 
 AddonType = TypeVar('AddonType', bound=AddOn)
+"""A :code:TypVar referencing the :class::AddOn type for generic use"""

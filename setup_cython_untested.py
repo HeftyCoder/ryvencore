@@ -1,16 +1,18 @@
 """
-This setup file can be used to manually compile ryvencore to a C extension using Cython, behavior should be the same.
+ORIGINALLY from ryvencore, this has not been TESTED.
 
-Follow the below process to compile ryvencore with Cython and install it as a regular package.
+This setup file can be used to manually compile cognixcore to a C extension using Cython, behavior should be the same.
+
+Follow the below process to compile cognixcore with Cython and install it as a regular package.
 Points 1 - 4 are only necessary if they are not satisfied already.
-Run all commands from the top level 'ryvencore' directory. The process is shown for Ubuntu Linux.
+Run all commands from the top level 'cognixcore' directory. The process is shown for Ubuntu Linux.
 Assuming only Python is installed already:
 
-1. Remove old ryvencore versions
+1. Remove old cognixcore versions
 
 .. code-block:: bash
 
-    $ pip uninstall ryvencore
+    $ pip uninstall cognixcore
 
 2. Install GCC
 
@@ -102,7 +104,7 @@ def get_ext_paths(root_dir, exclude_files=[], recursive=True):
 
 if __name__ == '__main__':
 
-    # these dependencies are not required for ryvencore to run, only for compilation
+    # these dependencies are not required for cognixcore to run, only for compilation
     # to avoid breaking the documentation build process, we hide them for sphinx
     from setuptools import setup
     from Cython.Build import cythonize, build_ext
@@ -110,7 +112,7 @@ if __name__ == '__main__':
     setup(
         cmaclass={'build_ext': build_ext},
         ext_modules=cythonize(
-            get_ext_paths('ryvencore', exclude_files=['ryvencore/addons/legacy/DTypes.py']),
+            get_ext_paths('cognixcore', exclude_files=['cognixcore/addons/legacy/DTypes.py']),
             compiler_directives={'language_level': 3},
             annotate=True,
         )

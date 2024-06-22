@@ -1,3 +1,8 @@
+"""
+This module defines the :class::NodeConfig interface class. Implement this
+class for creating a specific configuration base type. The default implementation
+for this, using the Traits library, is :class::cognixcore.config.traits.NodeTraitsConfig
+"""
 from __future__ import annotations
 
 from abc import abstractmethod, ABCMeta
@@ -22,6 +27,11 @@ class NodeConfig:
         # frameworks such as traits that might behave differently
         # when setting an instance's member
         self._allow_change = [True]
+        """
+        We're using a list to avoid some implications that may
+        occur when using the Traits package. Ideally, this could
+        be changed to an abstract method to avoid any confusions.
+        """
     
     @property
     def node(self) -> Node:
@@ -37,7 +47,7 @@ class NodeConfig:
         self._config_changed.add(e)
     
     def remove_changed_event(self, e: Callable[[Any], None]):
-        """Removes any change event"""
+        """Removes any change event previously added."""
         self._config_changed.remove(e)
     
     def _on_config_changed(self, params):
@@ -52,7 +62,6 @@ class NodeConfig:
     
     def allow_change_events(self):
         """Allows the invocation of change events."""
-        # check init if this seems weird
         self._allow_change[0] = True
     
     def block_change_events(self):
@@ -70,9 +79,6 @@ class NodeConfig:
         pass
     
     @abstractmethod
-    def data(self):
-        """
-        Returns a JSON compatible dict with the data needed to
-        reconstruct this configuration
-        """
+    def data(self) -> dict:
+        """Serializes this configuartion to a JSON compatible dict."""
         pass

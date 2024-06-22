@@ -106,10 +106,6 @@ class Flow(Base):
     """
     Manages all abstract flow components (nodes, edges, executors, etc.)
     and exposes methods for modification.
-    
-    The generic flow type helps in building libraries that have a different base node
-    type than a typical Node. This was made to help with type hinting. Also check 
-    the node_base_type for additional runtime type checking.
     """
     
     _node_base_type: type[Node] = Node
@@ -168,7 +164,7 @@ class Flow(Base):
         self.set_algorithm_mode(value)
         
     @property
-    def executor(self):
+    def executor(self) -> FlowExecutor:
         """Returns the current executor of the Flow"""
         return self._executor
     
@@ -177,13 +173,15 @@ class Flow(Base):
         self.set_executor(value)
     
     @property
-    def logger(self):
+    def logger(self) -> Logger:
+        """Returns the logger of the flow, based on the logging addon."""
         if not self._logger:
             self._logger = self.session.logg_addon.loggers[self]
         return self._logger
     
     @property
-    def player(self):
+    def player(self) -> GraphPlayer:
+        """A player that can evaluate the flow as if it were a python program."""
         return self._player
     
     @player.setter
@@ -248,29 +246,6 @@ class Flow(Base):
         self.nodes_created_from_data.emit(nodes)
 
         return nodes
-
-    # Output no longer serialized here
-    # def _set_output_values_from_data(self, nodes: list[Node], data: list):
-    #     for d in data:
-    #         indices = d['dependent node outputs']
-    #         indices_paired: zip[tuple[int, int]] = zip(indices[0::2], indices[1::2])
-    #         for node_index, output_index in indices_paired:
-
-    #             # find Data class
-    #             dt_id = d['data']['identifier']
-    #             if dt_id == 'Data':
-    #                 data_type = Data
-    #             else:
-    #                 data_type = self.session.data_types.get(dt_id)
-
-    #                 if data_type is None:
-    #                     print_err(f'Tried to use unregistered Data type '
-    #                               f'{dt_id} while loading. Skipping. '
-    #                               f'Please register data types before using them.')
-    #                     continue
-                    
-    #             nodes[node_index]._outputs[output_index].val = data_type(load_from=d['data'])
-
 
     def create_node(self, node_class: type[NodeType], data=None, silent=False) -> NodeType:
         """Creates, adds and returns a new node object"""
@@ -603,7 +578,7 @@ class Flow(Base):
             
     def set_algorithm_mode(self, mode: FlowAlg | str, silent=False):
         """
-        Sets the algorithm mode of the flow, possible values
+        Sets the algorithm mode of the flow, possible string values
         are 'manual', 'data', 'data opt', and 'exec'.
         
         Internally sets the corresponding executor.
@@ -658,27 +633,5 @@ class Flow(Base):
                         })
 
         return data
-
-
-    # Output Datas no longer serialized here.
-
-    # def _gen_output_data(self, nodes: list[Node]) -> list[dict]:
-    #     """Serializes output data of the nodes"""
-    # 
-    #     outputs_data = {}
-
-    #     for i_n, n in enumerate(nodes):
-    #         for i_o, out in enumerate(n._outputs):
-    #             d = out.val
-    #             if isinstance(d, Data) and d not in outputs_data:
-    #                 outputs_data[d] = {
-    #                     'data': d.data(),
-    #                     'dependent node outputs': [i_n, i_o],
-    #                 }
-    #             elif isinstance(d, Data):
-    #                 outputs_data[d]['dependent node outputs'] += [i_n, i_o]
-
-    #     return list(outputs_data.values())
-
 
 

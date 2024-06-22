@@ -1,4 +1,3 @@
-
 from logging import (
     getLogger, 
     Logger,
@@ -16,21 +15,17 @@ from .base import AddOn
 from ..base import NoArgsEvent, Event
 from ..flow import Flow
 from ..node import Node
+from collections.abc import Mapping
 
 
 class LoggingAddon(AddOn):
     """
-    This addon implements some very basic logging functionality.
+    This addon implements :class::`cognixcore.flow.Flow` and :class::`cognixcore.node.Node` logging functionality.
 
     It provides functions to create and delete loggers that are owned
     by a particular node. The loggers get enabled/disabled
     automatically when the owning node is added to/removed from
-    the flow. When a node is serialized, its loggers are saved in
-    the state dict of the flow, and when the node is deserialized,
-    the loggers get recreated.
-
-    Ownership might eventually be expanded to any component that
-    preserves its global ID throughout save and load.
+    the flow.
 
     The contents of logs are currently not preserved. If a log's
     content should be preserved, it should be saved explicitly.
@@ -58,7 +53,7 @@ class LoggingAddon(AddOn):
         self._root_logger = getLogger(self.root_logger_name)
     
     @property 
-    def log_level(self):
+    def log_level(self) -> int:
         """The log level assigned to a logger at creation. Refer to python's logging module."""
         return self._log_level
     
@@ -70,11 +65,13 @@ class LoggingAddon(AddOn):
             logger.setLevel(value)
             
     @property
-    def root_looger(self):
+    def root_looger(self) -> Logger:
+        """The top-level logger associated with the Logging Addon."""
         return self._root_logger
     
     @property
-    def loggers(self):
+    def loggers(self) -> Mapping[Flow | Node, Logger]:
+        """A map from a Flow or Node to their respective loggers"""
         return self._loggers_proxy
     
     @property

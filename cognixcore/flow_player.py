@@ -1,3 +1,19 @@
+"""
+This module defines the flow players. A flow player is responsible for evaluating
+and executing the graph, much like a :class::`cognixcore.flow_executor.FlowExecutor`.
+
+However, it is meant as an evaluator that reads the graph as a "python program".
+It gathers all the valid nodes it can find and simultaneously markes the roots nodes.
+Root nodes are nodes that have no inputs associated to them. By implementing a BFS (Breadth-First-Search) 
+algorithm, the graph is traversed and nodes are evaluated, avoiding duplicate evaluations.
+
+This default behavior can be found at the :class::`FlowPlayer` class. For a custom implementation
+of how a graph should be evaluated, refer to :class::`GraphPlayer`.
+
+The above approach was necessary to ensure that graphs can also support streaming contexts for
+real-time applications out of the box, efficiently and easily.
+
+"""
 from abc import ABC, abstractmethod
 from .base import Event, NoArgsEvent
 from enum import Enum, auto
@@ -46,7 +62,10 @@ class GraphStateEvent:
         return f"Old State: {self.old_state}, New State: {self.new_state}"
         
 class GraphEvents:
-    """All the events that a player may have. Hides invocation"""
+    """
+    All the events that a graph player may have, associated with the
+    :class::`GraphState` states.
+    """
         
     def __init__(self):
         self.reset()
@@ -72,6 +91,7 @@ class GraphEvents:
             e.unsub(func)
             
     def reset(self):
+        """Resets the all the events."""
         self._state_changed = Event[GraphStateEvent]()
         
         self._on_play = NoArgsEvent()
@@ -152,13 +172,13 @@ class GraphTime:
         """Frame duration the player will attempt to uphold."""
         return 1 / self._frames
     
-    def avg_fps(self):
+    def avg_fps(self) -> float:
         """The average frames per second since the start of time."""
         if self._time == 0.0:
             return 0.0
         return self._frame_count / self._time
     
-    def current_fps(self):
+    def current_fps(self) -> float:
         """The current frames per second"""
         if self._delta_time == 0.0:
             return 0.0
@@ -172,7 +192,8 @@ class GraphTime:
  
 class GraphPlayer(ABC):
     """
-    A player is a class that handles the life-time of a node program.
+    A graph player is a class that handles the processing and evaluating
+    of a flow of nodes like it would a python program.
     """
     
     def __init__(self, frames: int = 5):
@@ -223,18 +244,22 @@ class GraphPlayer(ABC):
     
     @abstractmethod
     def play(self):
+        """Plays or evaluates the graph."""
         pass
     
     @abstractmethod
     def pause(self):
+        """Pauses the graph if it had any real-time elements (FrameNodes)."""
         pass
     
     @abstractmethod
     def resume(self):
+        """Resumes the graph if it was paused."""
         pass
     
     @abstractmethod
     def stop(self):
+        """Stops the graph."""
         pass
     
     def __is_stopped(self):

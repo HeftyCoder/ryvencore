@@ -1,3 +1,15 @@
+"""
+This module defines the default implementation of the ::class:cognixcore.config.abc.NodeConfig
+provided using the Traits Library. Some of the basic traits have been extended through new classes
+using the CX suffix. To non-GUI applications, this change is irrelevant. The CX_Float and Float
+Traits are identical. However, for GUI applications, there is one significasnt difference. The CX
+prefixed traits are designed so they don't invoke a :code:`trait_changed_event` on each keystroke
+of the keyboard.
+
+Please refer to the `Traits <<https://docs.enthought.com/traits/>>` and `Traits UI <https://docs.enthought.com/traitsui/>`
+for an in-depth tutorial on how to use the default configuration classes. 
+"""
+
 from traits.api import *
 from traits.api import NoDefaultSpecified
 from traits.observation.expression import ObserverExpression, trait, anytrait
@@ -131,8 +143,7 @@ def find_expressions (
 ):
     """
     Recursively searches an object to find all the possible observer
-    expressions. Starting expression should be None and starting object
-    should be a HasTraits.
+    expressions. The starting expr should be :code:`None`.
     """
     
     if not obj:
@@ -158,14 +169,6 @@ def find_expressions (
         obs_exprs.append(expr)
         new_obj, new_expr = process_method(obj, None, expr)
         find_expressions(new_obj, new_expr, obs_exprs, exp_type)
-        
-        
-class CX_Instance(Instance):
-    """Trait instance whose class parameter is instantiated by default"""
-    
-    def __init__(self, klass=None, factory=None, args=(), kw=None, 
-                 allow_none=True, adapt=None, module=None, **metadata):
-        super().__init__(klass, factory, args, kw, allow_none, adapt, module, **metadata)
 
 _auto_enter = {
     'enter_set': True,
@@ -176,10 +179,9 @@ _auto_enter = {
 
 class __CX_Interface:
     """
-    This is a class helper to define Cognix trait parameters
-    
-    It is the first class in the inheritance chain.
-    The trait class is the second class.
+    This is a class helper to define trait parameters. This class
+    ensures that, in the context of a Trait Configuration UI, change
+    events are only invoked when pressing the enter button.
     """
     
     def __init__(self, default_value=NoDefaultSpecified, **metadata):
@@ -302,13 +304,24 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         self._init_children(node)
         
     def _init_children(self, node: Node):
+        """
+        All the child traits that are :code:`HasTraits` instances themselves
+        are passed the node through this function.
+        """
         self._node = node
         for _, trait in self.serializable_traits().items():
             if isinstance(trait, NodeTraitsConfig):
                 trait._init_children(node)
     # Traits only
     
-    def is_duplicate_notif(self, ev):
+    def is_duplicate_notif(
+        self, 
+        ev: TraitChangeEvent | ListChangeEvent | SetChangeEvent | DictChangeEvent
+    ):
+        """
+        In some cases, a change notification can be invoked when the
+        trait hasn't changed value.
+        """
         if isinstance(ev, TraitChangeEvent):
             return ev.new == ev.old
         elif isinstance(ev, (ListChangeEvent, SetChangeEvent, DictChangeEvent)):
@@ -329,13 +342,6 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         This is a recursive operation that includes nested
         configurations and configurations inside lists, dicts,
         sets and tuples.
-        
-        The only important thing is that any dynamically added
-        nested configurations must have their types imported
-        previously.
-        
-        Since traits configurations, at least for this library, are
-        primarily static in form, this shouldn't be an issue. 
         """
         self.block_change_events()
         for name, inner_data in data.items():
@@ -427,9 +433,19 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
         )
     
     def serializable_traits(self) -> dict[str, AnyType]:
+        """
+        Returns the traits that should be serialized.
+        
+        To avoid having a trait serialized, you can set
+        its visible metadata attribute to False - :code:`visible=False`
+        """
         return self.trait_get(**self.__s_metadata)
     
     def inspected_traits(self) -> dict[str, CTrait]:
+        """
+        Returns the traits that should be inspected in case
+        of a GUI implementation.
+        """
         # the trait_get func seems to ignore traits like Button
         # however, the traits funct adds some additional traits
         # that shouldn't be visible, despite visible=not_false
@@ -442,6 +458,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
     
 class NodeTraitsGroupConfig(NodeTraitsConfig):
     """
-    A type meant to represent a group in traits ui.
+    A type meant to represent a group in traits ui. Currently not used
+    and will probably be removed.
     """  
     pass

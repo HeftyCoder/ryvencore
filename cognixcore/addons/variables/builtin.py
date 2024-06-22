@@ -1,4 +1,7 @@
-"""Various built-in Variables and their Metadata"""
+"""
+Defines built-in variable types and their metadata as :type:cognixcore.base.IdentifiableGroups. The built in types
+include Python primitives, namely str, bytes, int, float, and complex. 
+"""
 
 from ...serializers import (
     TypeSerializer, 
@@ -13,12 +16,14 @@ from fractions import Fraction
 
 __built_in_types: dict[type, VarType] = {}
 built_in_types = MappingProxyType(__built_in_types)
+"""A mapping from type to variable type."""
 
 variable_groups = IdentifiableGroups[VarType]()
+"""The variable groups holding the built-in variables."""
 
 base_package = 'builtin'
 numbers_package = f'{base_package}.numbers'
-collection_package = f'{base_package}.collections'
+# collection_package = f'{base_package}.collections'
 
 def __var_type(val_type: type, pkg: str, serializer: TypeSerializer, name=None):
     vt_name = name if name else val_type.__name__

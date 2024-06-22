@@ -1,3 +1,9 @@
+"""
+This module defines the RESTful API deployed for a :class::`cognixcore.session.Session`.
+The rest of the documentation is automatically generated through FastAPI and is part of
+the documentation package.
+"""
+
 from __future__ import annotations
 from json import dumps, loads
 
@@ -284,6 +290,7 @@ class SessionServer:
                 raise RuntimeError(f"Something went wrong with the REST API. The port {port} is probably taken!")
     
     def shutdown(self):
+        """Shutdowns the RESTful API server, if it was started previously."""
         self._port = -1
         self._running = False
         if self._server:
