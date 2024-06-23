@@ -1,5 +1,5 @@
 """
-This module defines the :class::`Base` class for most internal components,
+This module defines the :class:`Base` class for most internal components,
 implementing features such as a unique ID, a system for save and load,
 and a very minimal event system.
 """
@@ -87,7 +87,7 @@ class IDCtr:
             self.ctr = cnt
 
 EP = ParamSpec('EP')
-"""A Parameter Spec for the :class::`Event` class. For Generic purposes."""
+"""A Parameter Spec for the :class:`Event` class. For Generic purposes."""
 
 class Event(Generic[EP]):
     """
@@ -115,7 +115,8 @@ class Event(Generic[EP]):
         Registers a callback function. The callback must accept compatible arguments.
         The optional :code:`nice` parameter can be used to set the priority of the
         callback. The lower the priority, the earlier the callback is called.
-        :code:`nice` can range from -5 to 10.
+        :code:`nice` can range from -5 to 10. The :code:`one_off` parameter indicates
+        that the callback will be removed once it has been invoked.
         
         Negative priorities indicate internal functions. Users should not set these.
         """
@@ -322,7 +323,7 @@ class IHaveIdentifiable:
         raise NotImplemented("The identifiable method must be implemented") 
 
 def find_identifiable(id: str, to_search: Iterable[Identifiable[InfoType]]):
-    """Searches for a :class::`Identifiable` with a given id."""
+    """Searches for a :class:`Identifiable` with a given id."""
     
     for nc in to_search:
         if nc.id == id:

@@ -2,7 +2,7 @@ import json
 import unittest
 import cognixcore as rc
 
-from cognixcore.addons.variables.core import VarsAddon, Variable
+from cognixcore.addons.variables._core import VarsAddon, Variable
 
 
 class NodeBase(rc.Node):

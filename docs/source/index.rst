@@ -7,7 +7,7 @@
    :maxdepth: 2
    :caption: Contents:
 
-   docstrings/cognixcore
+   autoapi/cognixcore/index
 
 Welcome to the :code:`cognixcore` documentation!
 
@@ -20,4 +20,3 @@ branch on GitHub.
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search` 

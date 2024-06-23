@@ -11,7 +11,7 @@ from logging import (
 from types import MappingProxyType
 from typing import Sequence
 
-from .base import AddOn
+from ._base import AddOn
 from ..base import NoArgsEvent, Event
 from ..flow import Flow
 from ..node import Node
@@ -20,7 +20,7 @@ from collections.abc import Mapping
 
 class LoggingAddon(AddOn):
     """
-    This addon implements :class::`cognixcore.flow.Flow` and :class::`cognixcore.node.Node` logging functionality.
+    This addon implements :class:`cognixcore.flow.Flow` and :class:`cognixcore.node.Node` logging functionality.
 
     It provides functions to create and delete loggers that are owned
     by a particular node. The loggers get enabled/disabled

@@ -1,5 +1,5 @@
 """
-This module defines the RESTful API deployed for a :class::`cognixcore.session.Session`.
+This module defines the RESTful API deployed for a :class:`cognixcore.session.Session`.
 The rest of the documentation is automatically generated through FastAPI and is part of
 the documentation package.
 """

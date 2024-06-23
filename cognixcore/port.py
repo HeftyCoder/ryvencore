@@ -3,7 +3,7 @@ from .utils import serialize, deserialize
 from .rc import PortObjPos, ConnValidType
 
 from dataclasses import dataclass
-from beartype.door import is_subhint, is_bearable
+from beartype.door import is_subhint
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 @dataclass
 class PortConfig:
     """
-    The PortConfig class is a placeholder for the static init_input and
-    init_outputs of custom Node classes.
-    An instantiated Node's actual inputs and outputs will be of type NodePort (NodeInput, NodeOutput).
+    The PortConfig class is a configuration class for creating ports. It's mainly used for the static init_input 
+    and init_outputs of custom Node classes, but can also be used for dynamically creating ports for Nodes.
+    An instantiated Node's actual inputs and outputs will be of type :class:`NodePort` (:class:`NodeInput`, :class:`NodeOutput`).
     """
     
     label: str = ''
@@ -67,7 +67,8 @@ class NodePort(Base):
 
 
 class NodeInput(NodePort):
-
+    """A port that is an input"""
+    
     def __init__(self, node, type_: str, label_str: str = '', default = None, allowed_data: type | None = None):
         super().__init__(node, PortObjPos.INPUT, type_, label_str, allowed_data)
         self.default = default
@@ -84,13 +85,15 @@ class NodeInput(NodePort):
         }
 
 class NodeOutput(NodePort):
+    """A port that is an output"""
+    
     def __init__(self, node, type_: str, label_str: str = '', allowed_data: type | None = None):
         super().__init__(node, PortObjPos.OUTPUT, type_, label_str, allowed_data)
 
         self.val: allowed_data = None
 
 def check_valid_data(type_out: type, type_in: type) -> bool:
-    
+    """Checks whether out and input can be connected via their allowed data types."""
     if not type_out:
         type_out = object
     if not type_in:

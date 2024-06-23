@@ -1,12 +1,6 @@
-"""
-This module implements the functionality for the Variables Addon. The VarType,
-which holds information regarding a variable is defined here, as well as the
-VarsAddon.
-"""
-
 from __future__ import annotations
 from packaging.version import parse as parse_version
-from ..base import AddOn
+from .._base import AddOn
 from ...base import Event
 from ...info_msgs import InfoMsgs
 from types import MappingProxyType

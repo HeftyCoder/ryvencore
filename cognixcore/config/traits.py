@@ -1,12 +1,12 @@
 """
-This module defines the default implementation of the ::class:cognixcore.config.abc.NodeConfig
+This module defines the default implementation of the :class:`cognixcore.config.NodeConfig`
 provided using the Traits Library. Some of the basic traits have been extended through new classes
-using the CX suffix. To non-GUI applications, this change is irrelevant. The CX_Float and Float
+using the CX suffix. To non-GUI applications, this change is irrelevant. The :class:`CX_Float` and :class:`traits.api.Float`
 Traits are identical. However, for GUI applications, there is one significasnt difference. The CX
 prefixed traits are designed so they don't invoke a :code:`trait_changed_event` on each keystroke
 of the keyboard.
 
-Please refer to the `Traits <<https://docs.enthought.com/traits/>>` and `Traits UI <https://docs.enthought.com/traitsui/>`
+Please refer to the `Traits <https://docs.enthought.com/traits/>`_ and `Traits UI <https://docs.enthought.com/traitsui/>`_
 for an in-depth tutorial on how to use the default configuration classes. 
 """
 
@@ -36,7 +36,7 @@ from collections.abc import (
 )
 
 from ..node import Node
-from .abc import NodeConfig
+from ._abc import NodeConfig
 
 #   UTIL
 
@@ -317,7 +317,7 @@ class NodeTraitsConfig(NodeConfig, HasTraits):
     def is_duplicate_notif(
         self, 
         ev: TraitChangeEvent | ListChangeEvent | SetChangeEvent | DictChangeEvent
-    ):
+    ) -> bool:
         """
         In some cases, a change notification can be invoked when the
         trait hasn't changed value.

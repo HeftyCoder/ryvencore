@@ -13,7 +13,7 @@ from .port import (
 from .info_msgs import InfoMsgs
 from .utils import serialize, deserialize
 from .rc import ProgressState
-from .addons.base import AddonType
+from .addons import AddonType
 from .config import NodeConfig
 from .utils import get_mod_classes
 
@@ -36,6 +36,7 @@ from typing import (
 if TYPE_CHECKING:
     from .flow import Flow
     from .flow_player import GraphPlayer
+    from logging import Logger
 
 class Node(Base, ABC):
     """
@@ -182,7 +183,7 @@ class Node(Base, ABC):
         return self.flow.player
     
     @property
-    def logger(self):
+    def logger(self) -> Logger | None:
         if not self._logger:
             self._logger = self.flow.session.logg_addon.loggers[self]
         return self._logger
@@ -745,7 +746,8 @@ class Node(Base, ABC):
         return d
     
 NodeType = TypeVar('NodeType', bound=Node)
- 
+"""A :class:`TypeVar` for describing node types in a generic way"""
+
 def node_from_identifier(id: str, nodes: list[Node]):
 
     for nc in nodes:
@@ -764,7 +766,7 @@ def node_from_identifier(id: str, nodes: list[Node]):
             )
 
 class FrameNode(Node):
-    """A node which updates every frame of the Cognix Application."""
+    """A node which updates every frame, where frame is defined by a :class:`cognixcore.flow_player.GraphPlayer`."""
     
     def __init__(self, params):
         super().__init__(params)

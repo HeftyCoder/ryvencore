@@ -1,16 +1,16 @@
 """
 This module defines the flow players. A flow player is responsible for evaluating
-and executing the graph, much like a :class::`cognixcore.flow_executor.FlowExecutor`.
+and executing the graph, much like a :class:`cognixcore.flow_executor.FlowExecutor`.
 
 However, it is meant as an evaluator that reads the graph as a "python program".
 It gathers all the valid nodes it can find and simultaneously markes the roots nodes.
 Root nodes are nodes that have no inputs associated to them. By implementing a BFS (Breadth-First-Search) 
 algorithm, the graph is traversed and nodes are evaluated, avoiding duplicate evaluations.
 
-This default behavior can be found at the :class::`FlowPlayer` class. For a custom implementation
-of how a graph should be evaluated, refer to :class::`GraphPlayer`.
+This default behavior can be found at the :class:`FlowPlayer` class. For a custom implementation
+of how a graph should be evaluated, refer to :class:`GraphPlayer`.
 
-The above approach was necessary to ensure that graphs can also support streaming contexts for
+The above approach was deemed essential to ensure that graphs can also support streaming contexts for
 real-time applications out of the box, efficiently and easily.
 
 """
@@ -64,7 +64,7 @@ class GraphStateEvent:
 class GraphEvents:
     """
     All the events that a graph player may have, associated with the
-    :class::`GraphState` states.
+    :class:`GraphState` states.
     """
         
     def __init__(self):
@@ -207,7 +207,7 @@ class GraphPlayer(ABC):
         self._events = GraphEvents()
     
     @property
-    def flow(self):
+    def flow(self) -> Flow:
         """The flow for this player."""
         return self._flow
     
@@ -218,17 +218,17 @@ class GraphPlayer(ABC):
         self._flow = value
     
     @property
-    def graph_time(self):
+    def graph_time(self) -> GraphTime:
         """Time information for this player"""
         return self._graph_time
     
     @property
-    def delta_time(self):
+    def delta_time(self) -> float:
         """Convenience method for returning delta-time"""
         return self._graph_time.delta_time
     
     @property
-    def graph_events(self):
+    def graph_events(self) -> GraphEvents:
         """Events for this graph"""
         return self._events
     

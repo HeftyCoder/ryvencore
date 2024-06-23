@@ -1,6 +1,6 @@
 """
-Defines built-in variable types and their metadata as :type:cognixcore.base.IdentifiableGroups. The built in types
-include Python primitives, namely str, bytes, int, float, and complex. 
+Defines built-in variable types and their metadata as :class:`cognixcore.IdentifiableGroups`. The built in types
+include Python primitives, namely :class:`str`, :class:`bytes`, :class:`int`, :class:`float`, and :class:`complex`. 
 """
 
 from ...serializers import (
@@ -9,7 +9,7 @@ from ...serializers import (
     ComplexSerializer,
     FractionSerializer,
 )
-from .core import VarType
+from ._core import VarType
 from ...base import Identifiable, IdentifiableGroups
 from types import MappingProxyType
 from fractions import Fraction

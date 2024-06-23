@@ -3,7 +3,7 @@ from .flow import Flow
 from .info_msgs import InfoMsgs
 from .utils import pkg_version, pkg_path, print_err, get_mod_classes
 from .node import Node
-from .addons.base import AddOn, AddonType
+from .addons._base import AddOn, AddonType
 from .addons.builtin import VarsAddon, LoggingAddon
 from .flow_player import (
     GraphPlayer,

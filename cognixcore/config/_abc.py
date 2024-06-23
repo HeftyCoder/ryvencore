@@ -1,8 +1,3 @@
-"""
-This module defines the :class::NodeConfig interface class. Implement this
-class for creating a specific configuration base type. The default implementation
-for this, using the Traits library, is :class::cognixcore.config.traits.NodeTraitsConfig
-"""
 from __future__ import annotations
 
 from abc import abstractmethod, ABCMeta

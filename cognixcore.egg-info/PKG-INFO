@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: cognixcore
-Version: 0.1
+Version: 0.9
 Summary: Python backend for node editor-like graph-based processing for various workflows.
 Home-page: https://github.com/HeftyCoder/ryvencore/tree/cognix
 Author: HCI Lab Ece Patras
