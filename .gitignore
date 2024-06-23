@@ -5,4 +5,4 @@ build/
 dist/
 cognixcore.egg-info/
 site/
-docs/
+docs/build

@@ -165,6 +165,16 @@ class Node(Base, ABC):
         self.progress_updated = Event[ProgressState]()
     
     @property
+    def num_inputs(self):
+        """The number of input ports."""
+        return len(self._inputs)
+    
+    @property
+    def num_outputs(self):
+        """The number of output ports"""
+        return len(self._outputs)
+    
+    @property
     def actions(self) -> IdentifiableGroups[NodeAction]:
         """The actions of this node."""
         return self._actions
@@ -180,16 +190,19 @@ class Node(Base, ABC):
     
     @property
     def player(self) -> GraphPlayer:
+        """A player that for the evaluation of the node."""
         return self.flow.player
     
     @property
     def logger(self) -> Logger | None:
+        """The logger associated with this node, if it exists."""
         if not self._logger:
             self._logger = self.flow.session.logg_addon.loggers[self]
         return self._logger
     
     @property
     def vars_addon(self):
+        """The variables addon associated with the flow that the node is currently in."""
         return self.flow.session.addon(VarsAddon)
     
     def var_val(self, name: str):

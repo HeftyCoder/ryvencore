@@ -7,12 +7,13 @@
    :maxdepth: 2
    :caption: Contents:
 
+   tutorial/index
    autoapi/cognixcore/index
 
 Welcome to the :code:`cognixcore` documentation!
 
-These docs are built directly from the cognixcore sources and automatically represent the latest version on the main
-branch on GitHub.
+These docs include examples on how someone can use the library to create nodes, as well as various utilties.
+It also includes the public API generated from the docstrings located in the cognixcore package.
 
 `Link to GitHub repository`_
 
