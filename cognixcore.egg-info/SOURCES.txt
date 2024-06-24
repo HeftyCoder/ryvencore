@@ -65,6 +65,7 @@ docs/build/doctrees/autoapi/cognixcore/session/index.doctree
 docs/build/doctrees/autoapi/cognixcore/utils/index.doctree
 docs/build/doctrees/tutorial/executor_graph_player.doctree
 docs/build/doctrees/tutorial/index.doctree
+docs/build/doctrees/tutorial/qol.doctree
 docs/build/doctrees/tutorial/start example.doctree
 docs/build/html/.buildinfo
 docs/build/html/genindex.html
@@ -122,6 +123,7 @@ docs/build/html/_sources/autoapi/cognixcore/session/index.rst.txt
 docs/build/html/_sources/autoapi/cognixcore/utils/index.rst.txt
 docs/build/html/_sources/tutorial/executor_graph_player.rst.txt
 docs/build/html/_sources/tutorial/index.rst.txt
+docs/build/html/_sources/tutorial/qol.rst.txt
 docs/build/html/_sources/tutorial/start example.rst.txt
 docs/build/html/_static/basic.css
 docs/build/html/_static/custom.css
@@ -169,6 +171,7 @@ docs/build/html/autoapi/cognixcore/session/index.html
 docs/build/html/autoapi/cognixcore/utils/index.html
 docs/build/html/tutorial/executor_graph_player.html
 docs/build/html/tutorial/index.html
+docs/build/html/tutorial/qol.html
 docs/build/html/tutorial/start example.html
 docs/img/logo.png
 docs/img/logo_desc.png
@@ -179,6 +182,8 @@ docs/source/setup_cython.rst
 docs/source/_static/custom.css
 docs/source/tutorial/executor_graph_player.rst
 docs/source/tutorial/index.rst
+docs/source/tutorial/qol.rst
 docs/source/tutorial/start example.rst
+docs/source/tutorial/examples/better_add.py
 docs/source/tutorial/examples/executors.py
 docs/source/tutorial/examples/simple_add.py

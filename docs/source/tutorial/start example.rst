@@ -5,7 +5,7 @@ In this example, we're going to see how to create two nodes that can work togeth
 
 First, our imports. All we need is the :class:`cognixcore.Node` and :class:`cognixcore.PortConfig` from :mod:`cognixcore` and the :code:`Number` from :code:`numbers` Python package.
 
-.. literalinclude:: simple_add.py
+.. literalinclude:: examples/simple_add.py
    :language: python
    :linenos:
    :lines: 1-6

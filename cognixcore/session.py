@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from typing import Callable
 from importlib import import_module
 from types import MappingProxyType
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from logging import Logger
 
 class Session(Base):
@@ -78,11 +78,11 @@ class Session(Base):
         self._rest_api = SessionServer(self)
     
     @property
-    def vars_addon(self):
+    def vars_addon(self) -> VarsAddon:
         return self.addon(VarsAddon)
     
     @property
-    def logg_addon(self):
+    def logg_addon(self) -> LoggingAddon:
         return self.addon(LoggingAddon)
     
     @property
@@ -90,27 +90,27 @@ class Session(Base):
         return self.addon(LoggingAddon).root_looger
     
     @property
-    def node_types(self):
+    def node_types(self) -> set[type[Node]]:
         return self._node_type_groups.infos
     
     @property
-    def addons(self):
+    def addons(self) -> Mapping[str, AddOn]:
         return self._addons_proxy
     
     @property
-    def flows(self):
+    def flows(self) -> Mapping[str, Flow]:
         return self._flows_proxy
     
     @property
-    def node_groups(self):
+    def node_groups(self) -> IdentifiableGroups[type[Node]]:
         """The identifiables of Node types groupped by their id prefix. If it doesn't exist, the key is global"""
         return self._node_type_groups
 
     @property
-    def rest_api(self):
+    def rest_api(self) -> SessionServer:
         return self._rest_api
     
-    def graph_player(self, title: str):
+    def graph_player(self, title: str) -> GraphPlayer | None:
         """A proxy to the graph players dictionary contained in the session"""
         flow: Flow = self._flows.get(title)
         return flow.player if flow else None

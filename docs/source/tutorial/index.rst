@@ -63,53 +63,61 @@ a random number and outputting it through its port. We then create a session, re
 instantiate it, along with the :code:`AddNode` from our first example. We then connect the nodes and
 play the flow. If we want the current flow of execution to not be stopped, we should pass :code:`True` to the :code:`on_other_thread` parameter, as shown.
 
-Quality of Life
----------------
+.. include:: qol.rst
 
-The above sections include the main functionalities of the :code:`cognixcore` library. In this section, we'll focus on  some QoL utilities that work out of the box with the CogniX Editor.
+A better example
+----------------
 
-Loading/saving
-^^^^^^^^^^^^^^
+To incorporate the above, we will iterate upon our first example to optimize the code and make it work better with the CogniX Editor.
 
-The nodes support state saving and loading through the :meth:`cognixcore.Node.load` and :meth:`cognixcore.Node.data` methods. Additionally, there are similar methods that can be found for the :code:`Session` and :code:`Flow`, however these should rarely be overriden.
+First, our imports. We're using quite a lot more than before.
 
-Progress State
-^^^^^^^^^^^^^^
+.. literalinclude:: examples/better_add.py
+   :language: python
+   :linenos:
+   :lines: 1-13
 
-The :class:`cognixcore.ProgressState` is a class that helps with setting the state of a node. In the context of simply scripting, this doesn't do much. However, it exists as an out of the box solution for any kind of GUI library that needs to define ongoing progress for a node. For example, the CogniX Editor automatically utilizes this to set a GUI that reacts to progress changes.
+Number Node
+^^^^^^^^^^^
 
-Loggers
-^^^^^^^
+.. literalinlcude:: examples/better_add.py
+   :language: python
+   :linenos:
+   :lines: 15-45
 
-Each node and flow have a logger through the :mode:`cognixcore.addons.logging` module, based on Python's `logging <https://docs.python.org/3/library/logging.html>`_ module. This can be accessed through their respective properties (:attr:`cognixcore.Node.logger` and :attr:`cognixcore.Flow.logger`).
+Notice that the :code:`NumberNode` now contains a configuration class. In this, we define a mode, giving our node different types of number generation. There is a :code:`random` mode, where the node returns a random number. Then there are two other modes, :code:`int` and :code:`float` for integers and floats respectively. This can also be seen from the :code:`int_num` and :code:`float_num` attributes.
 
-Variables
-^^^^^^^^^
+In the :code:`update_event`, we now also set a progress to indicate that our node has started generating the number and that it has finished. Granted, this operation will be really fast and hence won't be visible in the CogniX Editor or any other GUI implementation for a progress state.
 
-Each node has access to a :class:`cognixcore.addons.variables.VarsAddon` for reading and setting the
-state of dynamic variables. Refer to the documentation for further details.
+Add Node
+^^^^^^^^
 
-Node Actions
-^^^^^^^^^^^^
+.. literalinclude:: examples/better_add.py
+   :language: Python
+   :linenos:
+   :lines: 47-95
 
-A node can define actions through the :class:`cognixcore.NodeAction` and the :meth:`cognixcore.Node.add_action` and :meth:`cognixcore.Node.add_generic_action` methods. In doing so, a context menu is populated for a node's GUI with the actions defined in the CogniX Editor. You would typically define the actions in the :code:`__init__` method of a node.
+The :code:`AddNode` now also contains a configuration class, with only one configuration. This configuration allows for easily and dynamically changing the ports of a node. Notice that for this node, we're only altering the inputs. Thus, we have removed the :code:`init_inputs` static attribute, since it is no longer needed.
 
-Dynamic ports
+Our :code:`update_event` logic is now written for the :code:`AddNode` to work with an arbitrary number of inputs. We're also making sure to output a result only if the result is different than a previous iteration. These implementation details might not work for you and you might choose to output the result despite it being the same as a previous iteration. This is specific to the role of the node and the developer behind it.
 
-The static :attr:`cognixcore.Node.init_inputs` and :attr:`cognixcore.Node.init_outputs` initialization lists only work when a node is instantiated but not loaded through data. A node instance supports adding or removing ports dynamically at runtime. This is done through the following methods:
+Finally, note that we're also logging the result. This would show in the CogniX Editor, or any other GUI that taps into the logging system of :code:`cognixcore`.
 
-- :meth:`cognixcore.Node.create_input`
-- :meth:`cognixcore.Node.delete_output`
-- :meth:`cognixcore.Node.create_output`
-- :meth:`cognixcore.Node.delete_output`
+Using the nodes
+^^^^^^^^^^^^^^^
+
+.. literalinclude:: examples/better_add.py
+   :language: Python
+   :linenos:
+   :lines: 101-129
+
+Finally, we're using the nodes in a scripting rather than visual manner. We're creating a session, registering the nodes and creating a flow. We're instantiating two :code:`NumberNode` (s) and one :code:`AddNode`. The first number node generates a random number while the second outputs the number 25. We're then making sure that the add node has two ports, which we set dynamically. Finally, we connect the nodes that work through the default :code:`DataFlowNaive` algorithm.
+
+Better yet, instead of relying on the :code:`DataFlowNaive` algorithm, we can evaluate our graph as a Python program, like this:
+
+.. literalinclude:: examples/better_add.py
+   :language: python
+   :linenos:
+   :lines: 131-131
 
 
-Node Configuration
-^^^^^^^^^^^^^^^^^^
-
-A node can have a configuration attached to it. This is done by either defining an internal to the node class explicitly named :code:`Config` or by setting the :attr:`cognixcore.Node.inner_config_type` type to a specific node config. The base class for a configuration is the :class:`cognixcore.NodeConfig` class.
-
-Configuration by Traits
-#######################
-
-The standard implementation for a node configuration is the :class:`cognixcore.config.traits.NodeTraitsConfig` class. It utilizes the `Traits <https://docs.enthought.com/traits/traits_tutorial/introduction.html>`_ and `Traits UI <https://docs.enthought.com/traitsui/>` for out of the box data validation and 
