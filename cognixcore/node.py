@@ -71,7 +71,7 @@ class Node(Base, ABC):
     init_outputs: list[PortConfig] = []
     """initial outputs list, see ``init_inputs``"""
 
-    _inner_config_type: type[NodeConfig] | None = None
+    inner_config_type: type[NodeConfig] | None = None
     """
     A nested class named Config can be defined to avoid setting the config_type.
     It will be used if the config_type is not defined.
@@ -104,7 +104,7 @@ class Node(Base, ABC):
         # config
         attr = getattr(cls, 'Config', None)
         if (attr and isclass(attr)):
-            cls._inner_config_type = attr
+            cls.inner_config_type = attr
 
         # we're automatically building the identifiable here
         # however, one can also build it externally to change
@@ -128,8 +128,8 @@ class Node(Base, ABC):
 
         if config:
             self._config = config
-        elif self._inner_config_type:
-            self._config = self._inner_config_type(self)
+        elif self.inner_config_type:
+            self._config = self.inner_config_type(self)
         else:
             self._config = None
             
@@ -781,8 +781,8 @@ def node_from_identifier(id: str, nodes: list[Node]):
 class FrameNode(Node):
     """A node which updates every frame, where frame is defined by a :class:`cognixcore.flow_player.GraphPlayer`."""
     
-    def __init__(self, params):
-        super().__init__(params)
+    def __init__(self, flow: Flow, config: NodeConfig = None):
+        super().__init__(flow, config)
         # Setting this will stop the node from updating
         self._is_finished = False
     

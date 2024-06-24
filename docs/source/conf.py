@@ -58,7 +58,6 @@ autoapi_type = "python"
 # og list ['members', 'undoc-members', 'private-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members',]
 # we won't be including the imported members here
 autoapi_options = ['members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members']
-autoapi_keep_files = True # keep the files
 autoapi_add_toctree_entry = False # do not add to toctree, we need to add additonaly files
 
 add_module_names = False

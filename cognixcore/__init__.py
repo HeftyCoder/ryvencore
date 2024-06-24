@@ -14,7 +14,7 @@ from .base import (
     find_identifiable,
     IdentifiableGroups
 )
-from .flow import Flow
+from .flow import Flow, FlowAlg
 from .node import (
     Node,
     FrameNode,
